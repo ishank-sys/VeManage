@@ -1,0 +1,237 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Project Management Tool Design System */
+
+@layer base {
+  :root {
+    /* ==========================================
+       Service Desk Dashboard-Inspired Design System
+       Sophisticated Blues + Professional Enterprise UX
+       ========================================== */
+
+    /* Clean surfaces with custom blue palette */
+    --background: 210 24% 96%; /* #e8f0f4 - lightest blue background */
+    --foreground: 198 59% 29%; /* #176993 - darkest blue for text */
+
+    --card: 0 0% 100%; /* pure white cards */
+    --card-foreground: 198 59% 29%; /* #176993 */
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 198 59% 29%; /* #176993 */
+
+    /* Custom blue palette primary system */
+    --primary: 198 59% 29%; /* #176993 - darkest blue */
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 198 59% 25%; /* slightly darker */
+    --primary-gradient: linear-gradient(135deg, hsl(198 59% 29%) 0%, hsl(199 44% 52%) 100%);
+
+    --secondary: 208 49% 87%; /* #b9d2df - light blue for secondary */
+    --secondary-foreground: 198 59% 29%; /* #176993 */
+
+    --accent: 199 44% 52%; /* #4587a9 - medium blue accent */
+    --accent-foreground: 0 0% 100%;
+
+    /* Custom blue metric card system */
+    --muted: 210 24% 96%; /* #e8f0f4 - lightest blue backgrounds */
+    --muted-foreground: 198 59% 29%; /* #176993 - dark blue text */
+
+    --info: 199 44% 52%; /* #4587a9 */
+    --info-foreground: 0 0% 100%;
+
+    /* Custom blue spectrum for data visualization */
+    --chart-1: 210 24% 96%; /* #e8f0f4 - lightest */
+    --chart-2: 208 49% 87%; /* #b9d2df - light */
+    --chart-3: 202 34% 63%; /* #74a5be - medium */
+    --chart-4: 199 44% 52%; /* #4587a9 - darker */
+    --chart-5: 198 59% 29%; /* #176993 - darkest */
+
+    /* Professional status colors */
+    --success: 142 76% 36%; /* professional green */
+    --success-foreground: 0 0% 100%;
+    --warning: 35 100% 50%; /* amber warning */
+    --warning-foreground: 0 0% 100%;
+    --destructive: 0 73% 41%; /* professional red */
+    --destructive-foreground: 0 0% 100%;
+
+    /* Borders using blue palette */
+    --border: 208 49% 87%; /* #b9d2df - light blue borders */
+    --input: 208 49% 87%; /* #b9d2df */
+    --ring: 198 59% 29%; /* #176993 - dark blue focus ring */
+
+    /* Progress with blue spectrum */
+    --progress-bg: 210 24% 96%; /* #e8f0f4 */
+    --progress-high: 142 76% 36%; /* keep green */
+    --progress-medium: 35 100% 50%; /* keep orange */
+    --progress-low: 0 73% 41%; /* keep red */
+
+    --radius: 0.375rem;
+
+    /* Blue-tinted shadows */
+    --shadow-light: 0 1px 3px rgba(23, 105, 147, 0.1), 0 1px 2px rgba(23, 105, 147, 0.06);
+    --shadow-medium: 0 4px 6px rgba(23, 105, 147, 0.15), 0 2px 4px rgba(23, 105, 147, 0.08);
+    --shadow-heavy: 0 10px 15px rgba(23, 105, 147, 0.2), 0 4px 6px rgba(23, 105, 147, 0.1);
+
+    /* Sidebar using custom blue palette */
+    --sidebar-background: 199 44% 52%; /* #4587a9 - medium blue */
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 0 0% 100%; /* white for active states */
+    --sidebar-primary-foreground: 199 44% 52%; /* #4587a9 */
+    --sidebar-accent: 202 34% 63%; /* #74a5be - lighter for hover */
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 198 59% 29%; /* #176993 - darker border */
+    --sidebar-ring: 0 0% 100%;
+  }
+
+  .dark {
+    /* ==========================================
+       Sophisticated Dark Dashboard Mode
+       ========================================== */
+
+    /* Dark surfaces with blue palette */
+    --background: 198 59% 8%; /* very dark version of #176993 */
+    --foreground: 210 24% 96%; /* #e8f0f4 - light blue text */
+
+    --card: 198 59% 12%; /* dark blue cards */
+    --card-foreground: 210 24% 96%; /* #e8f0f4 */
+
+    --popover: 198 59% 10%;
+    --popover-foreground: 210 24% 96%; /* #e8f0f4 */
+
+    /* Dark mode blue system */
+    --primary: 202 34% 63%; /* #74a5be - medium blue for visibility */
+    --primary-foreground: 198 59% 8%;
+    --primary-hover: 199 44% 68%; /* brighter hover */
+    --primary-gradient: linear-gradient(135deg, hsl(202 34% 63%) 0%, hsl(208 49% 87%) 100%);
+
+    --secondary: 198 59% 18%; /* dark blue secondary */
+    --secondary-foreground: 210 24% 96%; /* #e8f0f4 */
+
+    --accent: 208 49% 87%; /* #b9d2df - light blue accent */
+    --accent-foreground: 198 59% 12%;
+
+    /* Dark metric cards */
+    --muted: 198 59% 15%; /* dark blue backgrounds */
+    --muted-foreground: 208 49% 75%; /* lighter blue text */
+
+    --info: 202 34% 63%; /* #74a5be */
+    --info-foreground: 198 59% 8%;
+
+    /* Dark chart spectrum using blue palette */
+    --chart-1: 208 49% 87%; /* #b9d2df - lightest for dark mode */
+    --chart-2: 202 34% 63%; /* #74a5be - medium */
+    --chart-3: 199 44% 52%; /* #4587a9 - darker */
+    --chart-4: 198 59% 35%; /* darker #176993 */
+    --chart-5: 198 59% 25%; /* darkest blue */
+
+    /* Dark status colors */
+    --success: 142 69% 50%; /* visible green */
+    --success-foreground: 0 0% 100%;
+    --warning: 35 100% 60%; /* bright orange */
+    --warning-foreground: 0 0% 100%;
+    --destructive: 0 73% 55%; /* balanced red */
+    --destructive-foreground: 0 0% 100%;
+
+    /* Dark borders using blue palette */
+    --border: 198 59% 25%; /* darker blue borders */
+    --input: 198 59% 18%;
+    --ring: 202 34% 63%; /* #74a5be focus ring */
+
+    /* Dark progress */
+    --progress-bg: 198 59% 15%;
+    --progress-high: 142 69% 50%; /* keep green */
+    --progress-medium: 35 100% 60%; /* keep orange */
+    --progress-low: 0 73% 55%; /* keep red */
+
+    /* Dark sidebar using blue palette */
+    --sidebar-background: 198 59% 20%; /* dark #176993 */
+    --sidebar-foreground: 210 24% 96%; /* #e8f0f4 */
+    --sidebar-primary: 210 24% 96%; /* #e8f0f4 for active */
+    --sidebar-primary-foreground: 198 59% 20%;
+    --sidebar-accent: 202 34% 63%; /* #74a5be for hover */
+    --sidebar-accent-foreground: 198 59% 8%;
+    --sidebar-border: 198 59% 25%;
+    --sidebar-ring: 210 24% 96%; /* #e8f0f4 */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "liga" 1, "calt" 1;
+    font-size: 15px; /* Increased from default 14px */
+    font-weight: 500; /* Medium weight for better readability */
+  }
+
+  /* Increase font sizes across all text elements */
+  p, span, div, button, input, textarea, label {
+    font-weight: 700; /* Make text slightly bolder */
+  }
+
+  /* Table and data text */
+  table, td, th {
+    font-weight: 550;
+    font-size: 18px;
+  }
+
+  /* Small text elements */
+  .text-xs {
+    font-size: 13px !important;
+    font-weight: 500;
+  }
+  
+  .text-sm {
+    font-size: 15px !important;
+    font-weight: 500;
+  }
+  
+  .text-base {
+    font-size: 17px !important;
+    font-weight: 500;
+  }
+  
+  .text-lg {
+    font-size: 19px !important;
+    font-weight: 600;
+  }
+
+  h1, h2, h3, h4 {
+    font-weight: 700; /* Increased from 600 */
+    letter-spacing: -0.02em;
+  }
+  h1 { font-size: 2.25rem; line-height: 1.2; } /* Increased from 2rem */
+  h2 { font-size: 1.75rem; line-height: 1.25; } /* Increased from 1.5rem */
+  h3 { font-size: 1.4rem; line-height: 1.3; } /* Increased from 1.25rem */
+  h4 { font-size: 1.2rem; line-height: 1.35; } /* Increased from 1.1rem */
+
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+}
+
+@layer utilities {
+  .focus-ring {
+    @apply outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2;
+    outline-color: hsl(var(--ring));
+  }
+
+  .shadow-palette-light {
+    box-shadow: var(--shadow-light);
+  }
+
+  .shadow-palette-medium {
+    box-shadow: var(--shadow-medium);
+  }
+
+  .shadow-palette-heavy {
+    box-shadow: var(--shadow-heavy);
+  }
+}
