@@ -1,36 +1,17 @@
-/**
- * SQL (Supabase) – run these once to create related tables
- *
- * create table if not exists "ProjectRFI" (
- *   id bigint generated always as identity primary key,
- *   projectId bigint not null references "Project"(id) on delete cascade,
- *   rfiNumber text,
- *   date date,
- *   status text,
- *   remark text,
- *   createdAt timestamptz default now()
- * );
- * create index if not exists projectrfi_projectid_idx on "ProjectRFI"(projectId);
- *
- * create table if not exists "ProjectPackage" (
- *   id bigint generated always as identity primary key,
- *   projectId bigint not null references "Project"(id) on delete cascade,
- *   name text not null,
- *   packageNumber text,
- *   tentativeDate date,
- *   status text,
- *   createdAt timestamptz default now()
- * );
- * create index if not exists projectpackage_projectid_idx on "ProjectPackage"(projectId);
- */
 import { useParams } from "react-router-dom";
 import { useEffect, useState, useMemo } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-// Tabs removed per new layout (overview static + side-by-side RFI & Packages)
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -50,6 +31,9 @@ import { Input } from "@/components/ui/input";
 import { Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
+// ──────────────────────────────────────────────
+// Interfaces
+// ──────────────────────────────────────────────
 interface ProjectRecord {
   id: number;
   name: string;
@@ -59,12 +43,11 @@ interface ProjectRecord {
   progress?: number | null;
   solProjectNo?: string | null;
   projectNo?: string | null;
-  branch?: string | null; // location
+  branch?: string | null;
   startDate?: string | null;
   endDate?: string | null;
   expectedCompletion?: string | null;
   solTLId?: number | null;
-  // Enhanced fields from full schema
   estimationDate?: string | null;
   totalProjectHours?: number | null;
   actualProjectHours?: number | null;
@@ -90,9 +73,6 @@ interface RFIRecord {
   remark?: string | null;
 }
 
-// NOTE: Actual DB column names are lowercase (no quotes used in DDL)
-// projectid, packagenumber, tentativedate, issuedate, createdat, updatedat
-// Keep interface aligned with DB response shape from Supabase
 interface PackageRecord {
   id: number;
   projectid: number;
@@ -101,12 +81,15 @@ interface PackageRecord {
   tentativedate?: string | null;
   issuedate?: string | null;
   status?: string | null;
-  tasks?: any[]; // jsonb array
+  tasks?: any[];
   notes?: string | null;
   createdat?: string | null;
   updatedat?: string | null;
 }
 
+// ──────────────────────────────────────────────
+// Utility styling helpers
+// ──────────────────────────────────────────────
 const STATUS_CLASS: Record<string, string> = {
   Live: "bg-primary text-primary-foreground",
   "Sent For Approval": "bg-secondary text-secondary-foreground",
@@ -134,15 +117,19 @@ const pkgStatusColor = (s?: string | null) => {
   return "bg-secondary text-secondary-foreground";
 };
 
+// ──────────────────────────────────────────────
+// Component
+// ──────────────────────────────────────────────
 const ProjectDetailPage = () => {
   const { id } = useParams();
   const projectId = id ? Number(id) : NaN;
+
   const [project, setProject] = useState<ProjectRecord | null>(null);
   const [loadingProject, setLoadingProject] = useState(true);
 
   const [rfiList, setRfiList] = useState<RFIRecord[]>([]);
-  const [loadingRfi, setLoadingRfi] = useState(false);
   const [pkgList, setPkgList] = useState<PackageRecord[]>([]);
+  const [loadingRfi, setLoadingRfi] = useState(false);
   const [loadingPkg, setLoadingPkg] = useState(false);
 
   const [openRfiDialog, setOpenRfiDialog] = useState(false);
@@ -161,9 +148,11 @@ const ProjectDetailPage = () => {
     status: "",
   });
 
-  // FETCH PROJECT
+  // ──────────────────────────────────────────────
+  // Fetch project
+  // ──────────────────────────────────────────────
   useEffect(() => {
-    const load = async () => {
+    const loadProject = async () => {
       if (!projectId) return;
       try {
         setLoadingProject(true);
@@ -175,16 +164,18 @@ const ProjectDetailPage = () => {
         if (error) throw error;
         setProject(data as any);
       } catch (e) {
-        console.error("Failed to load project", e);
+        console.error("Project load error:", e);
         setProject(null);
       } finally {
         setLoadingProject(false);
       }
     };
-    load();
+    loadProject();
   }, [projectId]);
 
-  // FETCH RFIs
+  // ──────────────────────────────────────────────
+  // Fetch RFIs
+  // ──────────────────────────────────────────────
   const reloadRfi = async () => {
     if (!projectId) return;
     try {
@@ -202,11 +193,14 @@ const ProjectDetailPage = () => {
       setLoadingRfi(false);
     }
   };
+
   useEffect(() => {
     reloadRfi();
   }, [projectId]);
 
-  // FETCH Packages
+  // ──────────────────────────────────────────────
+  // Fetch Packages
+  // ──────────────────────────────────────────────
   const reloadPackages = async () => {
     if (!projectId) return;
     try {
@@ -224,10 +218,14 @@ const ProjectDetailPage = () => {
       setLoadingPkg(false);
     }
   };
+
   useEffect(() => {
     reloadPackages();
   }, [projectId]);
 
+  // ──────────────────────────────────────────────
+  // Insert RFI / Package
+  // ──────────────────────────────────────────────
   const handleAddRfi = async () => {
     if (!projectId) return;
     try {
@@ -248,7 +246,6 @@ const ProjectDetailPage = () => {
     if (!projectId) return;
     try {
       if (!newPkg.name) return;
-      // Map camelCase form fields to actual DB column names
       const payload = {
         projectid: projectId,
         name: newPkg.name,
@@ -268,186 +265,124 @@ const ProjectDetailPage = () => {
     }
   };
 
+  // ──────────────────────────────────────────────
+  // Derived values
+  // ──────────────────────────────────────────────
   const progress = project?.progress ?? 0;
   const statusClass =
     STATUS_CLASS[project?.status || ""] ||
     "bg-secondary text-secondary-foreground";
 
-  const pkgStatusCounts = useMemo(() => {
-    const acc: Record<string, number> = {};
-    pkgList.forEach((p) => {
-      const key = p.status || "Unknown";
-      acc[key] = (acc[key] || 0) + 1;
-    });
-    return acc;
-  }, [pkgList]);
-
+  // ──────────────────────────────────────────────
+  // Render
+  // ──────────────────────────────────────────────
   return (
     <DashboardLayout>
-      <div className="space-y-8">
-        {/* Loading / Not Found */}
-        {loadingProject ? (
-          <div className="text-sm text-muted-foreground">
-            Loading project...
+      {loadingProject ? (
+        <div className="text-sm text-muted-foreground">Loading project...</div>
+      ) : !project ? (
+        <div className="text-sm text-destructive">Project not found.</div>
+      ) : (
+        <>
+          {/* ─────────────── Header ─────────────── */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+            <div>
+              <h1 className="text-2xl font-semibold">{project.name}</h1>
+              <p className="text-muted-foreground text-sm">
+                {project.solProjectNo || project.projectNo}{" "}
+                {project.branch && <>• {project.branch}</>}
+              </p>
+            </div>
+            <div className="flex items-center gap-6 mt-4 md:mt-0">
+              <div className="flex items-center gap-2">
+                <div className="text-xs text-muted-foreground">Status</div>
+                <Badge className={statusClass}>{project.status || "-"}</Badge>
+              </div>
+              <div className="text-sm font-medium">
+                <div className="flex items-center gap-2">
+                  <span>Progress</span>
+                  <span className="text-primary font-semibold">
+                    {progress}%
+                  </span>
+                </div>
+                <Progress value={progress} className="w-36 h-2 mt-1" />
+              </div>
+            </div>
           </div>
-        ) : !project ? (
-          <div className="text-sm text-destructive">Project not found.</div>
-        ) : (
-          <>
-            {/* Compact Header */}
-            <Card className="shadow-sm">
-              <CardContent className="flex items-start justify-between p-4 gap-4">
-                <div className="flex-1 min-w-0">
-                  <h1 className="text-xl font-semibold truncate">
-                    {project.name}
-                  </h1>
-                  <p className="text-muted-foreground mt-1 flex flex-wrap gap-2 text-xs">
-                    <span className="truncate">
-                      {project.solProjectNo || project.projectNo}
-                    </span>
-                    {project.branch && <span>• {project.branch}</span>}
-                  </p>
-                </div>
-                <div className="flex-shrink-0 text-right">
-                  <div className="flex items-center gap-2 justify-end">
-                    <div className="text-xs text-muted-foreground">Status</div>
-                    <Badge className={statusClass}>
-                      {project.status || "-"}
-                    </Badge>
-                  </div>
-                  <div className="mt-2 text-sm font-medium">
-                    <div className="flex items-center gap-3">
-                      <div>Progress</div>
-                      <div className="text-primary font-semibold">
-                        {progress}%
-                      </div>
-                    </div>
-                    <Progress value={progress} className="w-36 h-2 mt-1" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
 
-            {/* Compact Snapshot & Details */}
-            <Card className="shadow-sm">
-              <CardHeader>
-                <CardTitle>Snapshot</CardTitle>
-              </CardHeader>
-              <CardContent className="p-3">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-m">
-                  <div className="space-y-1 py-1">
-                    <div className="uppercase text-muted-foreground text-[10px]">
+          {/* ─────────────── Tabs ─────────────── */}
+          <Tabs defaultValue="overview" className="space-y-4">
+            <TabsList className="bg-muted/30">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="rfi">RFI</TabsTrigger>
+              <TabsTrigger value="packages">Packages</TabsTrigger>
+              <TabsTrigger value="submittals">Submittals</TabsTrigger>
+              <TabsTrigger value="gantt">Gantt Chart</TabsTrigger>
+            </TabsList>
+
+            {/* Overview */}
+            <TabsContent value="overview">
+              <Card className="shadow-sm">
+                <CardHeader>
+                  <CardTitle>Snapshot</CardTitle>
+                  <CardDescription>
+                    Quick summary of project status
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                  <div>
+                    <div className="text-muted-foreground text-[10px] uppercase">
                       RFIs
                     </div>
-                    <div className="font-semibold text-sm">
-                      {rfiList.length}
-                    </div>
-                    <div className="text-muted-foreground text-[11px]">
-                      {
-                        rfiList.filter((r) =>
-                          r.status?.toLowerCase().includes("pend")
-                        ).length
-                      }{" "}
-                      pending
-                    </div>
+                    <div className="font-semibold">{rfiList.length}</div>
                   </div>
-                  <div className="space-y-1 py-1">
-                    <div className="uppercase text-muted-foreground text-[10px]">
+                  <div>
+                    <div className="text-muted-foreground text-[10px] uppercase">
                       Packages
                     </div>
-                    <div className="font-semibold text-sm">
-                      {pkgList.length}
-                    </div>
-                    <div className="text-muted-foreground text-[11px]">
-                      {Object.keys(pkgStatusCounts).length} statuses
-                    </div>
+                    <div className="font-semibold">{pkgList.length}</div>
                   </div>
-                  <div className="space-y-1 py-1">
-                    <div className="uppercase text-muted-foreground text-[10px]">
+                  <div>
+                    <div className="text-muted-foreground text-[10px] uppercase">
                       Hours (Est/Act)
                     </div>
-                    <div className="font-semibold text-sm">
+                    <div className="font-semibold">
                       {project.totalProjectHours || "-"} /{" "}
                       {project.actualProjectHours || "-"}
                     </div>
-                    {project.totalProjectHours &&
-                      project.actualProjectHours && (
-                        <div className="text-[11px] text-muted-foreground">
-                          {(
-                            (project.actualProjectHours /
-                              project.totalProjectHours) *
-                            100
-                          ).toFixed(1)}
-                          %
-                        </div>
-                      )}
                   </div>
-                  <div className="space-y-1 py-1">
-                    <div className="uppercase text-muted-foreground text-[10px]">
-                      Days
-                    </div>
-                    <div className="font-semibold text-sm">
-                      {project.totalDays || "-"}
-                    </div>
-                    <div className="text-[11px] text-muted-foreground">
-                      {project.branch || "-"}
-                    </div>
-                  </div>
-                  <div className="space-y-1 py-1">
-                    <div className="uppercase text-muted-foreground text-[10px]">
+                  <div>
+                    <div className="text-muted-foreground text-[10px] uppercase">
                       Priority
                     </div>
-                    <div>
-                      <Badge
-                        variant={
-                          project.priority === "HIGH"
-                            ? "destructive"
-                            : project.priority === "MEDIUM"
-                            ? "default"
-                            : "secondary"
-                        }
-                      >
-                        {project.priority || "Not Set"}
-                      </Badge>
-                    </div>
+                    <Badge
+                      variant={
+                        project.priority === "HIGH"
+                          ? "destructive"
+                          : project.priority === "MEDIUM"
+                          ? "default"
+                          : "secondary"
+                      }
+                    >
+                      {project.priority || "Not Set"}
+                    </Badge>
                   </div>
-                  <div className="space-y-1 py-1">
-                    <div className="uppercase text-muted-foreground text-[10px]">
-                      Complexity
-                    </div>
-                    <div>
-                      <Badge
-                        variant={
-                          project.projectComplexity === "HIGH"
-                            ? "destructive"
-                            : project.projectComplexity === "MEDIUM"
-                            ? "default"
-                            : "secondary"
-                        }
-                      >
-                        {project.projectComplexity || "Not Set"}
-                      </Badge>
-                    </div>
-                  </div>
-                  <div className="space-y-1 py-1 col-span-2 md:col-span-4">
-                    <div className="uppercase text-muted-foreground text-[10px]">
+                  <div className="col-span-2 md:col-span-4">
+                    <div className="text-muted-foreground text-[10px] uppercase mb-1">
                       Description
                     </div>
-                    <div className="text-xs text-muted-foreground leading-snug max-h-20 overflow-y-auto whitespace-pre-wrap bg-muted/20 p-2 rounded">
+                    <div className="text-xs text-muted-foreground bg-muted/30 p-2 rounded">
                       {project.description || "-"}
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-            {/* (old statistics condensed into Snapshot above) */}
-
-            {/* Side-by-side layout: RFIs (left) and Packages (right) */}
-            <div className="grid gap-6 lg:grid-cols-2">
-              {/* RFIs */}
+            {/* RFI */}
+            <TabsContent value="rfi">
               <Card>
-                <CardHeader className="flex items-center justify-between">
+                <CardHeader className="flex justify-between items-center">
                   <CardTitle>Requests for Information</CardTitle>
                   <Dialog open={openRfiDialog} onOpenChange={setOpenRfiDialog}>
                     <DialogTrigger asChild>
@@ -472,7 +407,6 @@ const ProjectDetailPage = () => {
                         />
                         <Input
                           type="date"
-                          placeholder="Date"
                           value={newRfi.date}
                           onChange={(e) =>
                             setNewRfi((r) => ({ ...r, date: e.target.value }))
@@ -512,7 +446,7 @@ const ProjectDetailPage = () => {
                     </DialogContent>
                   </Dialog>
                 </CardHeader>
-                <CardContent className="p-2">
+                <CardContent>
                   {loadingRfi ? (
                     <div className="text-xs text-muted-foreground">
                       Loading RFIs...
@@ -523,10 +457,10 @@ const ProjectDetailPage = () => {
                     </div>
                   ) : (
                     <div className="overflow-x-auto">
-                      <Table className="text-[13px]">
+                      <Table>
                         <TableHeader>
-                          <TableRow className="text-[12px]">
-                            <TableHead className="w-6">#</TableHead>
+                          <TableRow>
+                            <TableHead>#</TableHead>
                             <TableHead>RFI</TableHead>
                             <TableHead>Date</TableHead>
                             <TableHead>Status</TableHead>
@@ -535,25 +469,16 @@ const ProjectDetailPage = () => {
                         </TableHeader>
                         <TableBody>
                           {rfiList.map((rfi, idx) => (
-                            <TableRow key={rfi.id} className="text-xs">
-                              <TableCell className="py-1">{idx + 1}</TableCell>
-                              <TableCell className="py-1">
-                                {rfi.rfiNumber || "-"}
-                              </TableCell>
-                              <TableCell className="py-1">
-                                {rfi.date || "-"}
-                              </TableCell>
-                              <TableCell className="py-1">
+                            <TableRow key={rfi.id}>
+                              <TableCell>{idx + 1}</TableCell>
+                              <TableCell>{rfi.rfiNumber || "-"}</TableCell>
+                              <TableCell>{rfi.date || "-"}</TableCell>
+                              <TableCell>
                                 <Badge className={rfiStatusColor(rfi.status)}>
                                   {rfi.status || "-"}
                                 </Badge>
                               </TableCell>
-                              <TableCell
-                                className="py-1 max-w-[260px] truncate"
-                                title={rfi.remark || ""}
-                              >
-                                {rfi.remark || "-"}
-                              </TableCell>
+                              <TableCell>{rfi.remark || "-"}</TableCell>
                             </TableRow>
                           ))}
                         </TableBody>
@@ -562,10 +487,12 @@ const ProjectDetailPage = () => {
                   )}
                 </CardContent>
               </Card>
+            </TabsContent>
 
-              {/* Packages */}
+            {/* Packages */}
+            <TabsContent value="packages">
               <Card>
-                <CardHeader className="flex items-center justify-between">
+                <CardHeader className="flex justify-between items-center">
                   <CardTitle>Project Packages</CardTitle>
                   <Dialog open={openPkgDialog} onOpenChange={setOpenPkgDialog}>
                     <DialogTrigger asChild>
@@ -633,7 +560,7 @@ const ProjectDetailPage = () => {
                     </DialogContent>
                   </Dialog>
                 </CardHeader>
-                <CardContent className="p-2">
+                <CardContent>
                   {loadingPkg ? (
                     <div className="text-xs text-muted-foreground">
                       Loading packages...
@@ -644,9 +571,9 @@ const ProjectDetailPage = () => {
                     </div>
                   ) : (
                     <div className="overflow-x-auto">
-                      <Table className="text-[13px]">
+                      <Table>
                         <TableHeader>
-                          <TableRow className="text-[12px]">
+                          <TableRow>
                             <TableHead>Name</TableHead>
                             <TableHead>Number</TableHead>
                             <TableHead>Tentative</TableHead>
@@ -661,23 +588,19 @@ const ProjectDetailPage = () => {
                               ? pkg.tasks.length
                               : 0;
                             return (
-                              <TableRow key={pkg.id} className="text-xs">
-                                <TableCell className="py-1 font-medium">
+                              <TableRow key={pkg.id}>
+                                <TableCell className="font-medium">
                                   {pkg.name}
                                 </TableCell>
-                                <TableCell className="py-1">
+                                <TableCell>
                                   {pkg.packagenumber || "-"}
                                 </TableCell>
-                                <TableCell className="py-1">
+                                <TableCell>
                                   {pkg.tentativedate || "-"}
                                 </TableCell>
-                                <TableCell className="py-1">
-                                  {pkg.issuedate || "-"}
-                                </TableCell>
-                                <TableCell className="py-1">
-                                  {tasksCount}
-                                </TableCell>
-                                <TableCell className="py-1">
+                                <TableCell>{pkg.issuedate || "-"}</TableCell>
+                                <TableCell>{tasksCount}</TableCell>
+                                <TableCell>
                                   <Badge className={pkgStatusColor(pkg.status)}>
                                     {pkg.status || "-"}
                                   </Badge>
@@ -691,49 +614,62 @@ const ProjectDetailPage = () => {
                   )}
                 </CardContent>
               </Card>
-            </div>
+            </TabsContent>
 
-            {/* Tentative vs Issued Timeline */}
-            <Card className="shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-sm font-medium">
-                  Package Schedule (Tentative vs Issued)
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4 pt-0">
-                {pkgList.length === 0 ? (
-                  <div className="text-xs text-muted-foreground">
-                    No packages to visualize yet.
+            {/* Submittals */}
+            <TabsContent value="submittals">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Submittals</CardTitle>
+                  <CardDescription>
+                    Track document and approval progress (placeholder)
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-sm text-muted-foreground">
+                    No submittals yet.
                   </div>
-                ) : (
-                  <TimelineChart packages={pkgList} />
-                )}
-              </CardContent>
-            </Card>
-          </>
-        )}
-      </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Gantt Chart */}
+            <TabsContent value="gantt">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Package Schedule (Tentative vs Issued)</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {pkgList.length === 0 ? (
+                    <div className="text-xs text-muted-foreground">
+                      No packages to visualize yet.
+                    </div>
+                  ) : (
+                    <TimelineChart packages={pkgList} />
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </>
+      )}
     </DashboardLayout>
   );
 };
 
-// Lightweight in-file component (avoids extra dependency) rendering a pseudo-Gantt timeline
+// ──────────────────────────────────────────────
+// Timeline Component (unchanged)
+// ──────────────────────────────────────────────
 interface TimelineChartProps {
   packages: PackageRecord[];
 }
 
 const TimelineChart: React.FC<TimelineChartProps> = ({ packages }) => {
-  // Collect valid dates
   const rows = packages
     .map((p) => {
       const tent = p.tentativedate ? new Date(p.tentativedate) : null;
       const issued = p.issuedate ? new Date(p.issuedate) : null;
-      return {
-        id: p.id,
-        name: p.name,
-        tentative: tent,
-        issued,
-      };
+      return { id: p.id, name: p.name, tentative: tent, issued };
     })
     .filter((r) => r.tentative || r.issued);
 
@@ -744,21 +680,15 @@ const TimelineChart: React.FC<TimelineChartProps> = ({ packages }) => {
       </div>
     );
 
-  const times: number[] = [];
-  rows.forEach((r) => {
-    if (r.tentative) times.push(r.tentative.getTime());
-    if (r.issued) times.push(r.issued.getTime());
-  });
+  const times = rows.flatMap((r) =>
+    [r.tentative, r.issued].filter(Boolean).map((d) => (d as Date).getTime())
+  );
   const minT = Math.min(...times);
   const maxT = Math.max(...times);
-  const span = Math.max(1, maxT - minT); // avoid divide by zero
+  const span = Math.max(1, maxT - minT);
 
-  const format = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : "-");
-
-  // Color mapping consistent with palette used earlier (primary / success / destructive)
   return (
     <div className="space-y-3">
-      {/* Legend */}
       <div className="flex flex-wrap items-center gap-4 text-[11px] text-muted-foreground">
         <div className="flex items-center gap-1">
           <span className="h-3 w-3 rounded bg-primary" /> Planned (Tentative)
@@ -768,81 +698,56 @@ const TimelineChart: React.FC<TimelineChartProps> = ({ packages }) => {
           Actual (Issued)
         </div>
         <div className="flex items-center gap-1">
-          <span className="h-3 w-3 rounded bg-destructive/70" /> Delay Window
-        </div>
-        <div className="ml-auto text-[10px]">
-          Range: {new Date(minT).toISOString().slice(0, 10)} →{" "}
-          {new Date(maxT).toISOString().slice(0, 10)}
+          <span className="h-3 w-3 rounded bg-destructive/70" /> Delay
         </div>
       </div>
+
       <div className="space-y-2">
         {rows.map((r) => {
-          const tPos = r.tentative
-            ? ((r.tentative.getTime() - minT) / span) * 100
-            : null;
-          const iPos = r.issued
-            ? ((r.issued.getTime() - minT) / span) * 100
-            : null;
-          const delay =
-            r.tentative && r.issued
-              ? r.issued.getTime() - r.tentative.getTime()
-              : 0;
-          const delayDays = delay > 0 ? Math.round(delay / 86400000) : 0;
-          const left = tPos != null ? tPos : iPos != null ? iPos : 0;
-          const right = iPos != null ? iPos : tPos != null ? tPos : 0;
-          const delayLeft =
-            tPos != null && iPos != null && iPos > tPos ? tPos : null;
-          const delayWidth =
-            tPos != null && iPos != null && iPos > tPos ? iPos - tPos : 0;
+          const t = r.tentative?.getTime();
+          const i = r.issued?.getTime();
+          const delay = t && i && i > t ? i - t : 0;
+          const delayDays = delay ? Math.round(delay / 86400000) : 0;
+
           return (
             <div
               key={r.id}
               className="flex items-center gap-3 rounded border bg-background/40 px-2 py-2"
             >
-              <div
-                className="w-40 min-w-[8rem] text-xs font-medium truncate"
-                title={r.name}
-              >
-                {r.name}
-              </div>
+              <div className="w-40 text-xs font-medium truncate">{r.name}</div>
               <div className="flex-1 relative h-5 rounded bg-muted overflow-hidden">
-                {delayLeft != null && delayWidth > 0 && (
-                  <div
-                    className="absolute top-0 h-full bg-destructive/40"
-                    style={{ left: `${delayLeft}%`, width: `${delayWidth}%` }}
-                    title={`Delay window (${delayDays}d)`}
-                  />
-                )}
-                {tPos != null && (
+                {t && (
                   <div
                     className="absolute top-0 h-full w-0.5 bg-primary"
-                    style={{ left: `${tPos}%` }}
-                    title={`Tentative: ${format(r.tentative)}`}
+                    style={{ left: `${((t - minT) / span) * 100}%` }}
                   />
                 )}
-                {iPos != null && (
+                {i && (
                   <div
-                    className={`absolute top-0 h-full w-0.5 ${
-                      delayDays > 0
-                        ? "bg-green-500 dark:bg-green-400"
-                        : "bg-green-500 dark:bg-green-400"
-                    }`}
-                    style={{ left: `${iPos}%` }}
-                    title={`Issued: ${format(r.issued)}`}
+                    className="absolute top-0 h-full w-0.5 bg-green-500"
+                    style={{ left: `${((i - minT) / span) * 100}%` }}
                   />
                 )}
-                {/* Connect line if both exist */}
-                {tPos != null && iPos != null && (
+                {t && i && (
                   <div
                     className="absolute top-1/2 -translate-y-1/2 h-px bg-border"
                     style={{
-                      left: `${Math.min(tPos, iPos)}%`,
-                      width: `${Math.abs(iPos - tPos)}%`,
+                      left: `${((Math.min(t, i) - minT) / span) * 100}%`,
+                      width: `${(Math.abs(i - t) / span) * 100}%`,
+                    }}
+                  />
+                )}
+                {delayDays > 0 && t && i && (
+                  <div
+                    className="absolute top-0 h-full bg-destructive/40"
+                    style={{
+                      left: `${((t - minT) / span) * 100}%`,
+                      width: `${((i - t) / span) * 100}%`,
                     }}
                   />
                 )}
               </div>
-              <div className="w-20 text-right text-[11px] tabular-nums">
+              <div className="w-16 text-right text-[11px] tabular-nums">
                 {delayDays > 0 ? `+${delayDays}d` : "On time"}
               </div>
             </div>
