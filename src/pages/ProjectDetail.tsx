@@ -85,6 +85,12 @@ interface PackageRecord {
   notes?: string | null;
   createdat?: string | null;
   updatedat?: string | null;
+  ifaversion?: string | null;
+  ifcversion?: string | null;
+  ifadate?: string | null;
+  bfadate?: string | null;
+  ifcdate?: string | null;
+  drawingCount?: number | null;
 }
 
 // ──────────────────────────────────────────────
@@ -134,6 +140,7 @@ const ProjectDetailPage = () => {
 
   const [openRfiDialog, setOpenRfiDialog] = useState(false);
   const [openPkgDialog, setOpenPkgDialog] = useState(false);
+  const [pkgToEdit, setPkgToEdit] = useState<PackageRecord | null>(null);
 
   const [newRfi, setNewRfi] = useState({
     rfiNumber: "",
@@ -142,11 +149,15 @@ const ProjectDetailPage = () => {
     remark: "",
   });
   const [newPkg, setNewPkg] = useState({
+    serialNo: "",
     name: "",
-    packageNumber: "",
-    tentativeDate: "",
-    status: "",
+    ifaDate: "",
+    bfaDate: "",
+    ifcDate: "",
+    submitalStatus: "IN_PROGRESS",
+    remarks: "",
   });
+  // When non-null, `pkgToEdit` indicates we're editing an existing package.
 
   // ──────────────────────────────────────────────
   // Fetch project
@@ -249,15 +260,41 @@ const ProjectDetailPage = () => {
       const payload = {
         projectid: projectId,
         name: newPkg.name,
-        packagenumber: newPkg.packageNumber || null,
-        tentativedate: newPkg.tentativeDate || null,
-        status: newPkg.status || null,
-      };
-      const { error } = await supabase
-        .from("ProjectPackage")
-        .insert(payload as any);
-      if (error) throw error;
-      setNewPkg({ name: "", packageNumber: "", tentativeDate: "", status: "" });
+        packagenumber: newPkg.serialNo || null,
+        ifadate: newPkg.ifaDate || null,
+        bfadate: newPkg.bfaDate || null,
+        ifcdate: newPkg.ifcDate || null,
+        status: newPkg.submitalStatus || "IN_PROGRESS",
+        notes: newPkg.remarks || null,
+      } as any;
+
+      if (pkgToEdit) {
+        // update existing
+        const { error } = await (supabase as any)
+          .from("ProjectPackage")
+          .update(payload as any)
+          .eq("id", pkgToEdit.id);
+        if (error) throw error;
+      } else {
+        // insert new
+        const insertPayload = { ...payload, tasks: [], drawingCount: 0 };
+        const { error } = await supabase
+          .from("ProjectPackage")
+          .insert(insertPayload as any);
+        if (error) throw error;
+      }
+
+      // reset
+      setNewPkg({
+        serialNo: "",
+        name: "",
+        ifaDate: "",
+        bfaDate: "",
+        ifcDate: "",
+        submitalStatus: "IN_PROGRESS",
+        remarks: "",
+      });
+      setPkgToEdit(null);
       setOpenPkgDialog(false);
       reloadPackages();
     } catch (e) {
@@ -316,7 +353,6 @@ const ProjectDetailPage = () => {
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="rfi">RFI</TabsTrigger>
               <TabsTrigger value="packages">Packages</TabsTrigger>
-              <TabsTrigger value="submittals">Submittals</TabsTrigger>
               <TabsTrigger value="gantt">Gantt Chart</TabsTrigger>
             </TabsList>
 
@@ -494,7 +530,10 @@ const ProjectDetailPage = () => {
               <Card>
                 <CardHeader className="flex justify-between items-center">
                   <CardTitle>Project Packages</CardTitle>
-                  <Dialog open={openPkgDialog} onOpenChange={setOpenPkgDialog}>
+                  <Dialog open={openPkgDialog} onOpenChange={(v) => {
+                    setOpenPkgDialog(v);
+                    if (!v) setPkgToEdit(null);
+                  }}>
                     <DialogTrigger asChild>
                       <Button size="sm" className="gap-2">
                         <Plus className="h-4 w-4" /> Add Package
@@ -502,49 +541,124 @@ const ProjectDetailPage = () => {
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
-                        <DialogTitle>New Package</DialogTitle>
+                        <DialogTitle>{pkgToEdit ? 'Edit Package' : 'New Package'}</DialogTitle>
                       </DialogHeader>
                       <div className="space-y-3">
-                        <Input
-                          placeholder="Name *"
-                          value={newPkg.name}
-                          onChange={(e) =>
-                            setNewPkg((p) => ({ ...p, name: e.target.value }))
-                          }
-                        />
-                        <Input
-                          placeholder="Number"
-                          value={newPkg.packageNumber || ""}
-                          onChange={(e) =>
-                            setNewPkg((p) => ({
-                              ...p,
-                              packageNumber: e.target.value,
-                            }))
-                          }
-                        />
-                        <Input
-                          type="date"
-                          placeholder="Tentative Date"
-                          value={newPkg.tentativeDate}
-                          onChange={(e) =>
-                            setNewPkg((p) => ({
-                              ...p,
-                              tentativeDate: e.target.value,
-                            }))
-                          }
-                        />
-                        <Input
-                          placeholder="Status"
-                          value={newPkg.status}
-                          onChange={(e) =>
-                            setNewPkg((p) => ({ ...p, status: e.target.value }))
-                          }
-                        />
+                          <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-sm font-medium">S.No</label>
+                            <Input
+                              placeholder="S.No"
+                              value={newPkg.serialNo}
+                              onChange={(e) =>
+                                setNewPkg((p) => ({
+                                  ...p,
+                                  serialNo: e.target.value,
+                                }))
+                              }
+                            />
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium">
+                              Name *
+                            </label>
+                            <Input
+                              placeholder="Package Name"
+                              value={newPkg.name}
+                              onChange={(e) =>
+                                setNewPkg((p) => ({
+                                  ...p,
+                                  name: e.target.value,
+                                }))
+                              }
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-3 gap-3">
+                          <div>
+                            <label className="text-sm font-medium">
+                              IFA Date
+                            </label>
+                            <Input
+                              type="date"
+                              value={newPkg.ifaDate}
+                              onChange={(e) =>
+                                setNewPkg((p) => ({
+                                  ...p,
+                                  ifaDate: e.target.value,
+                                }))
+                              }
+                            />
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium">
+                              BFA Date
+                            </label>
+                            <Input
+                              type="date"
+                              value={newPkg.bfaDate}
+                              onChange={(e) =>
+                                setNewPkg((p) => ({
+                                  ...p,
+                                  bfaDate: e.target.value,
+                                }))
+                              }
+                            />
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium">
+                              IFC Date
+                            </label>
+                            <Input
+                              type="date"
+                              value={newPkg.ifcDate}
+                              onChange={(e) =>
+                                setNewPkg((p) => ({
+                                  ...p,
+                                  ifcDate: e.target.value,
+                                }))
+                              }
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">
+                            Submital Status
+                          </label>
+                          <select
+                            className="w-full rounded border px-3 py-2 text-sm"
+                            value={newPkg.submitalStatus}
+                            onChange={(e) =>
+                              setNewPkg((p) => ({
+                                ...p,
+                                submitalStatus: e.target.value,
+                              }))
+                            }
+                          >
+                            <option value="IN_PROGRESS">IN_PROGRESS</option>
+                            <option value="COMPLETED">COMPLETED</option>
+                            <option value="PENDING">PENDING</option>
+                            <option value="APPROVED">APPROVED</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Remarks</label>
+                          <Input
+                            placeholder="Remarks"
+                            value={newPkg.remarks}
+                            onChange={(e) =>
+                              setNewPkg((p) => ({
+                                ...p,
+                                remarks: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
                         <div className="flex justify-end gap-2">
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => setOpenPkgDialog(false)}
+                            onClick={() => { setOpenPkgDialog(false); setPkgToEdit(null); }}
                           >
                             Cancel
                           </Button>
@@ -574,37 +688,66 @@ const ProjectDetailPage = () => {
                       <Table>
                         <TableHeader>
                           <TableRow>
+                            <TableHead>#</TableHead>
                             <TableHead>Name</TableHead>
                             <TableHead>Number</TableHead>
-                            <TableHead>Tentative</TableHead>
-                            <TableHead>Issued</TableHead>
-                            <TableHead>Tasks</TableHead>
+                            <TableHead>IFA Date</TableHead>
+                            <TableHead>BFA Date</TableHead>
+                            <TableHead>IFC Date</TableHead>
                             <TableHead>Status</TableHead>
+                            <TableHead>Remarks</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {pkgList.map((pkg) => {
-                            const tasksCount = Array.isArray(pkg.tasks)
-                              ? pkg.tasks.length
-                              : 0;
                             return (
                               <TableRow key={pkg.id}>
+                                <TableCell>{pkg.packagenumber || "-"}</TableCell>
                                 <TableCell className="font-medium">
-                                  {pkg.name}
+                                  <button
+                                    className="text-left text-primary underline"
+                                    onClick={() => {
+                                      // open dialog in edit mode
+                                      setPkgToEdit(pkg);
+                                      setNewPkg({
+                                        serialNo: pkg.packagenumber || "",
+                                        name: pkg.name || "",
+                                        ifaDate: pkg.ifadate || "",
+                                        bfaDate: pkg.bfadate || "",
+                                        ifcDate: pkg.ifcdate || "",
+                                        submitalStatus: pkg.status || "IN_PROGRESS",
+                                        remarks: pkg.notes || "",
+                                      });
+                                      setOpenPkgDialog(true);
+                                    }}
+                                  >
+                                    {pkg.name}
+                                  </button>
                                 </TableCell>
                                 <TableCell>
                                   {pkg.packagenumber || "-"}
                                 </TableCell>
                                 <TableCell>
-                                  {pkg.tentativedate || "-"}
+                                  {pkg.ifadate
+                                    ? new Date(pkg.ifadate).toLocaleDateString()
+                                    : "-"}
                                 </TableCell>
-                                <TableCell>{pkg.issuedate || "-"}</TableCell>
-                                <TableCell>{tasksCount}</TableCell>
+                                <TableCell>
+                                  {pkg.bfadate
+                                    ? new Date(pkg.bfadate).toLocaleDateString()
+                                    : "-"}
+                                </TableCell>
+                                <TableCell>
+                                  {pkg.ifcdate
+                                    ? new Date(pkg.ifcdate).toLocaleDateString()
+                                    : "-"}
+                                </TableCell>
                                 <TableCell>
                                   <Badge className={pkgStatusColor(pkg.status)}>
                                     {pkg.status || "-"}
                                   </Badge>
                                 </TableCell>
+                                <TableCell>{pkg.notes || "-"}</TableCell>
                               </TableRow>
                             );
                           })}
@@ -616,22 +759,7 @@ const ProjectDetailPage = () => {
               </Card>
             </TabsContent>
 
-            {/* Submittals */}
-            <TabsContent value="submittals">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Submittals</CardTitle>
-                  <CardDescription>
-                    Track document and approval progress (placeholder)
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-sm text-muted-foreground">
-                    No submittals yet.
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
+            {/* Submittals removed as requested */}
 
             {/* Gantt Chart */}
             <TabsContent value="gantt">

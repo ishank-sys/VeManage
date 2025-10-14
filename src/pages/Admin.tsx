@@ -33,6 +33,7 @@ export default function Admin() {
       id: number | string;
       projectId: number;
       projectName: string;
+      packageName: string;
       clientName: string;
       tlName: string;
       date: string;
@@ -202,7 +203,7 @@ export default function Admin() {
     // Fetch packages with tentative dates in window
     const { data: pkgs, error: pErr } = await supabase
       .from("ProjectPackage")
-      .select("id, projectid, tentativedate")
+      .select("id, projectid, tentativedate, name, packagenumber")
       .gte("tentativedate", from)
       .lte("tentativedate", to)
       .order("tentativedate", { ascending: true });
@@ -306,6 +307,7 @@ export default function Admin() {
     const normalized = list.map((r: any) => {
       const pm = projMeta.get(Number(r.projectid));
       const projectName = pm?.name || `Project ${r.projectid}`;
+      const packageName = r.name || `Package ${r.id}`;
       const clientName =
         pm?.clientId != null
           ? clientNameMap.get(pm.clientId) || `Client ${pm.clientId}`
@@ -316,6 +318,7 @@ export default function Admin() {
         id: r.id,
         projectId: r.projectid,
         projectName,
+        packageName,
         clientName,
         tlName,
         date: r.tentativedate,
@@ -514,6 +517,9 @@ export default function Admin() {
                       <div className="text-[11px] px-2 py-0.5 rounded bg-muted shrink-0">
                         {new Date(u.date).toLocaleDateString()}
                       </div>
+                    </div>
+                    <div className="text-[11px] font-medium truncate" title={`Package: ${u.packageName}`}>
+                      Package: {u.packageName}
                     </div>
                     <div
                       className="text-[11px] text-muted-foreground truncate"
