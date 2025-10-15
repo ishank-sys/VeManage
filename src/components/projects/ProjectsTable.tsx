@@ -435,7 +435,14 @@ export function ProjectsTable({
           })();
           return {
             id: project.id,
-            projectNo: project.projectNo || project.project_no || "",
+            // Prefer new ClientprojectNo field; fallback to legacy variants
+            projectNo:
+              project.ClientprojectNo ||
+              project.clientprojectno ||
+              project.client_project_no ||
+              project.projectNo ||
+              project.project_no ||
+              "",
             solProjectNo:
               project.solProjectNo ||
               project.sol_project_no ||

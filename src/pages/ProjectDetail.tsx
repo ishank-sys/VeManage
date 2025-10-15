@@ -44,6 +44,7 @@ interface ProjectRecord {
   progress?: number | null;
   solProjectNo?: string | null;
   projectNo?: string | null;
+  ClientprojectNo?: string | null;
   branch?: string | null;
   startDate?: string | null;
   endDate?: string | null;
@@ -412,7 +413,7 @@ const ProjectDetailPage = () => {
             <div>
               <h1 className="text-2xl font-semibold">{project.name}</h1>
               <p className="text-muted-foreground text-sm">
-                {project.solProjectNo || project.projectNo}{" "}
+                {project.solProjectNo || project.ClientprojectNo || project.projectNo}{" "}
                 {project.branch && <>• {project.branch}</>}
               </p>
             </div>

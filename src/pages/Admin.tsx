@@ -272,7 +272,7 @@ export default function Admin() {
             const name =
               c.name ||
               c.clientName ||
-              c.companyName ||
+              //c.companyName ||
               c.client ||
               c.contactPerson ||
               `Client ${id}`;

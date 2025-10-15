@@ -477,6 +477,7 @@ export function AddProjectDialog({
     setLoading(true);
 
     try {
+      const clientProjectNoTrimmed = (formData.projectNo || "").trim();
       const solProjectNoTrimmed = (formData.solProjectNo || "").trim();
       const nameTrimmed = (formData.name || "").trim();
       if (!solProjectNoTrimmed) {
@@ -508,7 +509,9 @@ export function AddProjectDialog({
       }
       // Build payload according to SteelVault Project schema
       const payload: any = {
-        projectNo: formData.projectNo || `P-${Date.now()}`,
+        // Map Client Project No -> ClientprojectNo in Project table
+        ClientprojectNo: clientProjectNoTrimmed || `P-${Date.now()}`,
+        // Map Sol Project No -> solProjectNo (existing)
         solProjectNo: solProjectNoTrimmed,
         name: formData.name,
         description: formData.description || null,

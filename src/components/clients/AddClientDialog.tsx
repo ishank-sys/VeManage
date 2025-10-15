@@ -31,7 +31,6 @@ interface AddClientDialogProps {
 
 interface ClientForm {
   name: string;
-  companyName: string;
   email: string;
   contactNo: string;
   address: string;
@@ -40,7 +39,6 @@ interface ClientForm {
 
 const emptyForm: ClientForm = {
   name: "",
-  companyName: "",
   email: "",
   contactNo: "",
   address: "",
@@ -101,7 +99,6 @@ export function AddClientDialog({
     if (isEdit && initialData) {
       setForm({
         name: initialData.name || "",
-        companyName: initialData.companyName || "",
         email: initialData.email || "",
         contactNo: initialData.contactNo || "",
         address: initialData.address || "",
@@ -180,7 +177,6 @@ export function AddClientDialog({
       const now = new Date().toISOString();
       const payload: any = {
         name: form.name.trim(),
-        companyName: form.companyName.trim() || form.name.trim(),
         email: form.email.trim() || null,
         contactNo: form.contactNo.trim() || null,
         address: form.address.trim() || null,
@@ -211,7 +207,7 @@ export function AddClientDialog({
         toast({
           title: "Client Updated",
           description: `Updated client '${
-            created?.name || created?.companyName || form.name
+            created?.name || form.name
           }'.`,
         });
       } else {
@@ -225,7 +221,7 @@ export function AddClientDialog({
         toast({
           title: "Client Added",
           description: `Created client '${
-            created?.name || created?.companyName || form.name
+            created?.name || form.name
           }'.`,
         });
       }
@@ -295,15 +291,6 @@ export function AddClientDialog({
                 onChange={(e) => update("name", e.target.value)}
                 required
                 placeholder="e.g., Acme Infrastructure"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="companyName">Company Name</Label>
-              <Input
-                id="companyName"
-                value={form.companyName}
-                onChange={(e) => update("companyName", e.target.value)}
-                placeholder="Defaults to Client Name"
               />
             </div>
             <div className="space-y-2">
