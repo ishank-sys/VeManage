@@ -237,6 +237,26 @@ const ProjectDetailPage = () => {
     reloadPackages();
   }, [projectId]);
 
+  // Compute next serial number for this project's packages (as a string)
+  const computeNextSerial = async (): Promise<string> => {
+    const { data, error } = await supabase
+      .from("ProjectPackage")
+      .select("packagenumber")
+      .eq("projectid", projectId);
+    if (error) throw error;
+    const arr = (data || []) as { packagenumber: any }[];
+    const nums = arr
+      .map((r) => {
+        const raw = String(r.packagenumber ?? "");
+        const onlyDigits = raw.replace(/[^0-9]/g, "");
+        const n = parseInt(onlyDigits, 10);
+        return Number.isFinite(n) ? n : NaN;
+      })
+      .filter((n) => Number.isFinite(n)) as number[];
+    const next = nums.length ? Math.max(...nums) + 1 : (arr.length || 0) + 1;
+    return String(next);
+  };
+
   // ──────────────────────────────────────────────
   // Insert RFI / Package
   // ──────────────────────────────────────────────
@@ -260,10 +280,13 @@ const ProjectDetailPage = () => {
     if (!projectId) return;
     try {
       if (!newPkg.name) return;
+      // Auto-assign serial/packagenumber for new packages; keep existing on edit
+      const autoSerial = !pkgToEdit ? await computeNextSerial() : (pkgToEdit.packagenumber || null);
+
       const payload = {
         projectid: projectId,
         name: newPkg.name,
-        packagenumber: newPkg.serialNo || null,
+        packagenumber: autoSerial,
         ifadate: newPkg.ifaDate || null,
         bfadate: newPkg.bfaDate || null,
         ifcdate: newPkg.ifcDate || null,
@@ -615,22 +638,7 @@ const ProjectDetailPage = () => {
                           </DialogTitle>
                         </DialogHeader>
                         <div className="space-y-3">
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <label className="text-sm font-medium">
-                                S.No
-                              </label>
-                              <Input
-                                placeholder="S.No"
-                                value={newPkg.serialNo}
-                                onChange={(e) =>
-                                  setNewPkg((p) => ({
-                                    ...p,
-                                    serialNo: e.target.value,
-                                  }))
-                                }
-                              />
-                            </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div>
                               <label className="text-sm font-medium">
                                 Name *
