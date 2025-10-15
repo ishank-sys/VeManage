@@ -28,8 +28,9 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Plus } from "lucide-react";
+import { Plus, Trash } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 // ──────────────────────────────────────────────
 // Interfaces
@@ -156,6 +157,8 @@ const ProjectDetailPage = () => {
     ifcDate: "",
     submitalStatus: "IN_PROGRESS",
     remarks: "",
+    ifaVersion: "",
+    ifcVersion: "",
   });
   // When non-null, `pkgToEdit` indicates we're editing an existing package.
 
@@ -264,24 +267,77 @@ const ProjectDetailPage = () => {
         ifadate: newPkg.ifaDate || null,
         bfadate: newPkg.bfaDate || null,
         ifcdate: newPkg.ifcDate || null,
+        ifaversion: newPkg.ifaVersion || null,
+        ifcversion: newPkg.ifcVersion || null,
         status: newPkg.submitalStatus || "IN_PROGRESS",
         notes: newPkg.remarks || null,
       } as any;
 
-      if (pkgToEdit) {
-        // update existing
-        const { error } = await (supabase as any)
-          .from("ProjectPackage")
-          .update(payload as any)
-          .eq("id", pkgToEdit.id);
-        if (error) throw error;
-      } else {
-        // insert new
-        const insertPayload = { ...payload, tasks: [], drawingCount: 0 };
-        const { error } = await supabase
-          .from("ProjectPackage")
-          .insert(insertPayload as any);
-        if (error) throw error;
+      console.log("Saving package payload:", payload, "pkgToEdit:", pkgToEdit);
+      // helper to perform update/insert
+      const performSave = async (pl: any) => {
+        if (pkgToEdit) {
+          const { data: updated, error } = await (supabase as any)
+            .from("ProjectPackage")
+            .update(pl as any)
+            .eq("id", pkgToEdit.id)
+            .select()
+            .single();
+          if (error) throw error;
+          return updated;
+        } else {
+          const insertPayload = { ...pl, tasks: [], drawingCount: 0 };
+          const { data: inserted, error } = await (supabase as any)
+            .from("ProjectPackage")
+            .insert(insertPayload as any)
+            .select()
+            .single();
+          if (error) throw error;
+          return inserted;
+        }
+      };
+
+      try {
+        const result = await performSave(payload);
+        console.log(
+          pkgToEdit ? "Updated package:" : "Inserted package:",
+          result
+        );
+        toast({
+          title: pkgToEdit ? "Package updated" : "Package created",
+          description: `${result?.name} saved successfully.`,
+        });
+      } catch (e: any) {
+        // If PostgREST schema cache missing columns (PGRST204), retry without version fields
+        const msg = String(e?.message || e);
+        if (
+          e?.code === "PGRST204" ||
+          msg.includes("Could not find the 'ifaversion'") ||
+          msg.includes("ifaversion") ||
+          msg.includes("ifcversion")
+        ) {
+          console.warn(
+            "Schema missing version columns, retrying without them:",
+            msg
+          );
+          const fallback = { ...payload };
+          delete fallback.ifaversion;
+          delete fallback.ifcversion;
+          try {
+            const result2 = await performSave(fallback);
+            console.log("Saved without version columns:", result2);
+            toast({
+              title: pkgToEdit
+                ? "Package updated (partial)"
+                : "Package created (partial)",
+              description: `${result2?.name} saved but version fields are not present in DB.`,
+            });
+          } catch (e2) {
+            throw e2;
+          }
+        } else {
+          throw e;
+        }
       }
 
       // reset
@@ -293,12 +349,19 @@ const ProjectDetailPage = () => {
         ifcDate: "",
         submitalStatus: "IN_PROGRESS",
         remarks: "",
+        ifaVersion: "",
+        ifcVersion: "",
       });
       setPkgToEdit(null);
       setOpenPkgDialog(false);
-      reloadPackages();
+      await reloadPackages();
     } catch (e) {
       console.error("Add Package failed", e);
+      toast({
+        title: "Save failed",
+        description: String(e),
+        variant: "destructive" as any,
+      });
     }
   };
 
@@ -496,7 +559,7 @@ const ProjectDetailPage = () => {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>#</TableHead>
+                            <TableHead>S.No</TableHead>
                             <TableHead>RFI</TableHead>
                             <TableHead>Date</TableHead>
                             <TableHead>Status</TableHead>
@@ -530,151 +593,199 @@ const ProjectDetailPage = () => {
               <Card>
                 <CardHeader className="flex justify-between items-center">
                   <CardTitle>Project Packages</CardTitle>
-                  <Dialog open={openPkgDialog} onOpenChange={(v) => {
-                    setOpenPkgDialog(v);
-                    if (!v) setPkgToEdit(null);
-                  }}>
-                    <DialogTrigger asChild>
-                      <Button size="sm" className="gap-2">
-                        <Plus className="h-4 w-4" /> Add Package
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>{pkgToEdit ? 'Edit Package' : 'New Package'}</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-3">
-                          <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <label className="text-sm font-medium">S.No</label>
-                            <Input
-                              placeholder="S.No"
-                              value={newPkg.serialNo}
-                              onChange={(e) =>
-                                setNewPkg((p) => ({
-                                  ...p,
-                                  serialNo: e.target.value,
-                                }))
-                              }
-                            />
-                          </div>
-                          <div>
-                            <label className="text-sm font-medium">
-                              Name *
-                            </label>
-                            <Input
-                              placeholder="Package Name"
-                              value={newPkg.name}
-                              onChange={(e) =>
-                                setNewPkg((p) => ({
-                                  ...p,
-                                  name: e.target.value,
-                                }))
-                              }
-                            />
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-3 gap-3">
-                          <div>
-                            <label className="text-sm font-medium">
-                              IFA Date
-                            </label>
-                            <Input
-                              type="date"
-                              value={newPkg.ifaDate}
-                              onChange={(e) =>
-                                setNewPkg((p) => ({
-                                  ...p,
-                                  ifaDate: e.target.value,
-                                }))
-                              }
-                            />
-                          </div>
-                          <div>
-                            <label className="text-sm font-medium">
-                              BFA Date
-                            </label>
-                            <Input
-                              type="date"
-                              value={newPkg.bfaDate}
-                              onChange={(e) =>
-                                setNewPkg((p) => ({
-                                  ...p,
-                                  bfaDate: e.target.value,
-                                }))
-                              }
-                            />
-                          </div>
-                          <div>
-                            <label className="text-sm font-medium">
-                              IFC Date
-                            </label>
-                            <Input
-                              type="date"
-                              value={newPkg.ifcDate}
-                              onChange={(e) =>
-                                setNewPkg((p) => ({
-                                  ...p,
-                                  ifcDate: e.target.value,
-                                }))
-                              }
-                            />
-                          </div>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium">
-                            Submital Status
-                          </label>
-                          <select
-                            className="w-full rounded border px-3 py-2 text-sm"
-                            value={newPkg.submitalStatus}
-                            onChange={(e) =>
-                              setNewPkg((p) => ({
-                                ...p,
-                                submitalStatus: e.target.value,
-                              }))
-                            }
-                          >
-                            <option value="IN_PROGRESS">IN_PROGRESS</option>
-                            <option value="COMPLETED">COMPLETED</option>
-                            <option value="PENDING">PENDING</option>
-                            <option value="APPROVED">APPROVED</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium">Remarks</label>
-                          <Input
-                            placeholder="Remarks"
-                            value={newPkg.remarks}
-                            onChange={(e) =>
-                              setNewPkg((p) => ({
-                                ...p,
-                                remarks: e.target.value,
-                              }))
-                            }
-                          />
-                        </div>
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => { setOpenPkgDialog(false); setPkgToEdit(null); }}
-                          >
-                            Cancel
-                          </Button>
-                          <Button
-                            size="sm"
-                            onClick={handleAddPackage}
-                            disabled={!newPkg.name}
-                          >
-                            Save
-                          </Button>
-                        </div>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
                 </CardHeader>
                 <CardContent>
+                  <div className="flex justify-end mb-3">
+                    <Dialog
+                      open={openPkgDialog}
+                      onOpenChange={(v) => {
+                        setOpenPkgDialog(v);
+                        if (!v) setPkgToEdit(null);
+                      }}
+                    >
+                      <DialogTrigger asChild>
+                        <Button size="sm" className="gap-2">
+                          <Plus className="h-4 w-4" /> Add Package
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>
+                            {pkgToEdit ? "Edit Package" : "New Package"}
+                          </DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="text-sm font-medium">
+                                S.No
+                              </label>
+                              <Input
+                                placeholder="S.No"
+                                value={newPkg.serialNo}
+                                onChange={(e) =>
+                                  setNewPkg((p) => ({
+                                    ...p,
+                                    serialNo: e.target.value,
+                                  }))
+                                }
+                              />
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium">
+                                Name *
+                              </label>
+                              <Input
+                                placeholder="Package Name"
+                                value={newPkg.name}
+                                onChange={(e) =>
+                                  setNewPkg((p) => ({
+                                    ...p,
+                                    name: e.target.value,
+                                  }))
+                                }
+                              />
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-3 gap-3">
+                            <div>
+                              <label className="text-sm font-medium">
+                                IFA Date
+                              </label>
+                              <Input
+                                type="date"
+                                value={newPkg.ifaDate}
+                                onChange={(e) =>
+                                  setNewPkg((p) => ({
+                                    ...p,
+                                    ifaDate: e.target.value,
+                                  }))
+                                }
+                              />
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium">
+                                BFA Date
+                              </label>
+                              <Input
+                                type="date"
+                                value={newPkg.bfaDate}
+                                onChange={(e) =>
+                                  setNewPkg((p) => ({
+                                    ...p,
+                                    bfaDate: e.target.value,
+                                  }))
+                                }
+                              />
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium">
+                                IFC Date
+                              </label>
+                              <Input
+                                type="date"
+                                value={newPkg.ifcDate}
+                                onChange={(e) =>
+                                  setNewPkg((p) => ({
+                                    ...p,
+                                    ifcDate: e.target.value,
+                                  }))
+                                }
+                              />
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="text-sm font-medium">
+                                IFA Version
+                              </label>
+                              <Input
+                                placeholder="e.g., IFA-01"
+                                value={newPkg.ifaVersion}
+                                onChange={(e) =>
+                                  setNewPkg((p) => ({
+                                    ...p,
+                                    ifaVersion: e.target.value,
+                                  }))
+                                }
+                              />
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium">
+                                IFC Version
+                              </label>
+                              <Input
+                                placeholder="e.g., IFC-01"
+                                value={newPkg.ifcVersion}
+                                onChange={(e) =>
+                                  setNewPkg((p) => ({
+                                    ...p,
+                                    ifcVersion: e.target.value,
+                                  }))
+                                }
+                              />
+                            </div>
+                          </div>
+                          {/* Tentative/Actual date inputs removed per request */}
+
+                          <div>
+                            <label className="text-sm font-medium">
+                              Submital Status
+                            </label>
+                            <select
+                              className="w-full rounded border px-3 py-2 text-sm"
+                              value={newPkg.submitalStatus}
+                              onChange={(e) =>
+                                setNewPkg((p) => ({
+                                  ...p,
+                                  submitalStatus: e.target.value,
+                                }))
+                              }
+                            >
+                              <option value="IN_PROGRESS">IN_PROGRESS</option>
+                              <option value="COMPLETED">COMPLETED</option>
+                              <option value="PENDING">PENDING</option>
+                              <option value="APPROVED">APPROVED</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium">
+                              Remarks
+                            </label>
+                            <Input
+                              placeholder="Remarks"
+                              value={newPkg.remarks}
+                              onChange={(e) =>
+                                setNewPkg((p) => ({
+                                  ...p,
+                                  remarks: e.target.value,
+                                }))
+                              }
+                            />
+                          </div>
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setOpenPkgDialog(false);
+                                setPkgToEdit(null);
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={handleAddPackage}
+                              disabled={!newPkg.name}
+                            >
+                              Save
+                            </Button>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
                   {loadingPkg ? (
                     <div className="text-xs text-muted-foreground">
                       Loading packages...
@@ -688,21 +799,23 @@ const ProjectDetailPage = () => {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>#</TableHead>
+                            <TableHead>S. No</TableHead>
                             <TableHead>Name</TableHead>
-                            <TableHead>Number</TableHead>
                             <TableHead>IFA Date</TableHead>
                             <TableHead>BFA Date</TableHead>
                             <TableHead>IFC Date</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead>Remarks</TableHead>
+                            <TableHead className="text-right">Delete</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {pkgList.map((pkg) => {
                             return (
                               <TableRow key={pkg.id}>
-                                <TableCell>{pkg.packagenumber || "-"}</TableCell>
+                                <TableCell>
+                                  {pkg.packagenumber || "-"}
+                                </TableCell>
                                 <TableCell className="font-medium">
                                   <button
                                     className="text-left text-primary underline"
@@ -715,17 +828,17 @@ const ProjectDetailPage = () => {
                                         ifaDate: pkg.ifadate || "",
                                         bfaDate: pkg.bfadate || "",
                                         ifcDate: pkg.ifcdate || "",
-                                        submitalStatus: pkg.status || "IN_PROGRESS",
+                                        submitalStatus:
+                                          pkg.status || "IN_PROGRESS",
                                         remarks: pkg.notes || "",
+                                        ifaVersion: pkg.ifaversion || "",
+                                        ifcVersion: pkg.ifcversion || "",
                                       });
                                       setOpenPkgDialog(true);
                                     }}
                                   >
                                     {pkg.name}
                                   </button>
-                                </TableCell>
-                                <TableCell>
-                                  {pkg.packagenumber || "-"}
                                 </TableCell>
                                 <TableCell>
                                   {pkg.ifadate
@@ -748,6 +861,40 @@ const ProjectDetailPage = () => {
                                   </Badge>
                                 </TableCell>
                                 <TableCell>{pkg.notes || "-"}</TableCell>
+                                <TableCell className="text-right">
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    className="gap-1"
+                                    onClick={async () => {
+                                      const ok = window.confirm(
+                                        `Delete package "${pkg.name}"?`
+                                      );
+                                      if (!ok) return;
+                                      try {
+                                        const { error } = await supabase
+                                          .from("ProjectPackage")
+                                          .delete()
+                                          .eq("id", pkg.id);
+                                        if (error) throw error;
+                                        toast({
+                                          title: "Package deleted",
+                                          description: `${pkg.name} removed successfully`,
+                                        });
+                                        await reloadPackages();
+                                      } catch (err) {
+                                        console.error("Delete failed", err);
+                                        toast({
+                                          title: "Delete failed",
+                                          description: String(err),
+                                          variant: "destructive" as any,
+                                        });
+                                      }
+                                    }}
+                                  >
+                                    <Trash className="h-4 w-4" />
+                                  </Button>
+                                </TableCell>
                               </TableRow>
                             );
                           })}
@@ -761,19 +908,48 @@ const ProjectDetailPage = () => {
 
             {/* Submittals removed as requested */}
 
-            {/* Gantt Chart */}
+            {/* Upcoming submissions (from IFA or IFC date) */}
             <TabsContent value="gantt">
               <Card>
                 <CardHeader>
-                  <CardTitle>Package Schedule (Tentative vs Issued)</CardTitle>
+                  <CardTitle>Upcoming Submissions</CardTitle>
+                  <CardDescription>
+                    Packages ordered by next submission date (IFA &gt; IFC)
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   {pkgList.length === 0 ? (
                     <div className="text-xs text-muted-foreground">
-                      No packages to visualize yet.
+                      No packages yet.
                     </div>
                   ) : (
-                    <TimelineChart packages={pkgList} />
+                    <div className="space-y-2">
+                      {pkgList
+                        .map((p) => ({
+                          ...p,
+                          nextDate: p.ifadate
+                            ? new Date(p.ifadate)
+                            : p.ifcdate
+                            ? new Date(p.ifcdate)
+                            : null,
+                        }))
+                        .filter((p) => p.nextDate)
+                        .sort(
+                          (a, b) =>
+                            a.nextDate!.getTime() - b.nextDate!.getTime()
+                        )
+                        .map((p) => (
+                          <div
+                            key={p.id}
+                            className="flex items-center justify-between"
+                          >
+                            <div className="text-sm font-medium">{p.name}</div>
+                            <div className="text-xs text-muted-foreground tabular-nums">
+                              {p.nextDate!.toLocaleDateString()}
+                            </div>
+                          </div>
+                        ))}
+                    </div>
                   )}
                 </CardContent>
               </Card>
@@ -786,104 +962,6 @@ const ProjectDetailPage = () => {
 };
 
 // ──────────────────────────────────────────────
-// Timeline Component (unchanged)
-// ──────────────────────────────────────────────
-interface TimelineChartProps {
-  packages: PackageRecord[];
-}
-
-const TimelineChart: React.FC<TimelineChartProps> = ({ packages }) => {
-  const rows = packages
-    .map((p) => {
-      const tent = p.tentativedate ? new Date(p.tentativedate) : null;
-      const issued = p.issuedate ? new Date(p.issuedate) : null;
-      return { id: p.id, name: p.name, tentative: tent, issued };
-    })
-    .filter((r) => r.tentative || r.issued);
-
-  if (rows.length === 0)
-    return (
-      <div className="text-xs text-muted-foreground">
-        No tentative / issued dates available.
-      </div>
-    );
-
-  const times = rows.flatMap((r) =>
-    [r.tentative, r.issued].filter(Boolean).map((d) => (d as Date).getTime())
-  );
-  const minT = Math.min(...times);
-  const maxT = Math.max(...times);
-  const span = Math.max(1, maxT - minT);
-
-  return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-4 text-[11px] text-muted-foreground">
-        <div className="flex items-center gap-1">
-          <span className="h-3 w-3 rounded bg-primary" /> Planned (Tentative)
-        </div>
-        <div className="flex items-center gap-1">
-          <span className="h-3 w-3 rounded bg-green-500 dark:bg-green-400" />{" "}
-          Actual (Issued)
-        </div>
-        <div className="flex items-center gap-1">
-          <span className="h-3 w-3 rounded bg-destructive/70" /> Delay
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        {rows.map((r) => {
-          const t = r.tentative?.getTime();
-          const i = r.issued?.getTime();
-          const delay = t && i && i > t ? i - t : 0;
-          const delayDays = delay ? Math.round(delay / 86400000) : 0;
-
-          return (
-            <div
-              key={r.id}
-              className="flex items-center gap-3 rounded border bg-background/40 px-2 py-2"
-            >
-              <div className="w-40 text-xs font-medium truncate">{r.name}</div>
-              <div className="flex-1 relative h-5 rounded bg-muted overflow-hidden">
-                {t && (
-                  <div
-                    className="absolute top-0 h-full w-0.5 bg-primary"
-                    style={{ left: `${((t - minT) / span) * 100}%` }}
-                  />
-                )}
-                {i && (
-                  <div
-                    className="absolute top-0 h-full w-0.5 bg-green-500"
-                    style={{ left: `${((i - minT) / span) * 100}%` }}
-                  />
-                )}
-                {t && i && (
-                  <div
-                    className="absolute top-1/2 -translate-y-1/2 h-px bg-border"
-                    style={{
-                      left: `${((Math.min(t, i) - minT) / span) * 100}%`,
-                      width: `${(Math.abs(i - t) / span) * 100}%`,
-                    }}
-                  />
-                )}
-                {delayDays > 0 && t && i && (
-                  <div
-                    className="absolute top-0 h-full bg-destructive/40"
-                    style={{
-                      left: `${((t - minT) / span) * 100}%`,
-                      width: `${((i - t) / span) * 100}%`,
-                    }}
-                  />
-                )}
-              </div>
-              <div className="w-16 text-right text-[11px] tabular-nums">
-                {delayDays > 0 ? `+${delayDays}d` : "On time"}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-};
+// Timeline chart removed — replaced by Upcoming Submissions view in the Gantt tab
 
 export default ProjectDetailPage;

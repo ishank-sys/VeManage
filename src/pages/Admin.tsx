@@ -518,7 +518,10 @@ export default function Admin() {
                         {new Date(u.date).toLocaleDateString()}
                       </div>
                     </div>
-                    <div className="text-[11px] font-medium truncate" title={`Package: ${u.packageName}`}>
+                    <div
+                      className="text-[11px] font-medium truncate"
+                      title={`Package: ${u.packageName}`}
+                    >
                       Package: {u.packageName}
                     </div>
                     <div
