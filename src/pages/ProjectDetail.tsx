@@ -282,7 +282,9 @@ const ProjectDetailPage = () => {
     try {
       if (!newPkg.name) return;
       // Auto-assign serial/packagenumber for new packages; keep existing on edit
-      const autoSerial = !pkgToEdit ? await computeNextSerial() : (pkgToEdit.packagenumber || null);
+      const autoSerial = !pkgToEdit
+        ? await computeNextSerial()
+        : pkgToEdit.packagenumber || null;
 
       const payload = {
         projectid: projectId,
@@ -413,7 +415,9 @@ const ProjectDetailPage = () => {
             <div>
               <h1 className="text-2xl font-semibold">{project.name}</h1>
               <p className="text-muted-foreground text-sm">
-                {project.solProjectNo || project.ClientprojectNo || project.projectNo}{" "}
+                {project.solProjectNo ||
+                  project.ClientprojectNo ||
+                  project.projectNo}{" "}
                 {project.branch && <>• {project.branch}</>}
               </p>
             </div>

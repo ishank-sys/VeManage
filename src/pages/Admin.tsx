@@ -193,12 +193,12 @@ export default function Admin() {
   };
 
   const loadUpcoming = async () => {
-    // Time window: now to +3 days (inclusive)
+    // Time window: now to +1 day (inclusive)
     const now = new Date();
-    const in3 = new Date();
-    in3.setDate(now.getDate() + 1);
+    const in1 = new Date();
+    in1.setDate(now.getDate() + 1);
     const from = now.toISOString();
-    const to = in3.toISOString();
+    const to = in1.toISOString();
 
     // Fetch packages with tentative dates in window
     const { data: pkgs, error: pErr } = await supabase
@@ -272,7 +272,6 @@ export default function Admin() {
             const name =
               c.name ||
               c.clientName ||
-              //c.companyName ||
               c.client ||
               c.contactPerson ||
               `Client ${id}`;

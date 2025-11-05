@@ -21,14 +21,15 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Logo } from "./Logo";
+import { useAuth } from "@/context/AuthContext";
 
-const navigationItems = [
+const baseNavigationItems = [
   { title: "Dashboard", url: "/", icon: Home },
   { title: "Projects", url: "/projects", icon: FolderOpen },
   { title: "Clients", url: "/clients", icon: Building2 },
   { title: "Team", url: "/team", icon: Users },
   { title: "Files", url: "/files", icon: FileText },
-  { title: "Admin", url: "/admin", icon: ShieldCheck },
+  // Admin will be conditionally added based on role
   { title: "Settings", url: "/settings", icon: Settings },
 ];
 
@@ -36,6 +37,7 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const location = useLocation();
   const isCollapsed = state === "collapsed";
+  const { user } = useAuth();
 
   const isActive = (path: string) => {
     if (path === "/") return location.pathname === "/";
@@ -72,7 +74,15 @@ export function AppSidebar() {
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navigationItems.map((item) => (
+              {(
+                user && (user.userType || "").toLowerCase() === "admin"
+                  ? [
+                      ...baseNavigationItems.slice(0, 5),
+                      { title: "Admin", url: "/admin", icon: ShieldCheck },
+                      ...baseNavigationItems.slice(5),
+                    ]
+                  : baseNavigationItems
+               ).map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink to={item.url} className={getNavClass(item.url)}>

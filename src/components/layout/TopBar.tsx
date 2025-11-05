@@ -6,10 +6,12 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import { useTheme } from "next-themes";
 import { useGlobalSearch } from "./DashboardLayout";
+import { useAuth } from "@/context/AuthContext";
 
 export function TopBar() {
   const { theme, setTheme } = useTheme();
   const { query, setQuery } = useGlobalSearch();
+  const { user, logout } = useAuth();
 
   return (
     <header className="h-16 border-b bg-card px-6 flex items-center justify-between">
@@ -48,12 +50,24 @@ export function TopBar() {
 
         {/* notification bell removed per request */}
 
-        <Avatar className="h-8 w-8">
-          <AvatarImage src="" />
-          <AvatarFallback className="bg-primary text-primary-foreground">
-            JD
-          </AvatarFallback>
-        </Avatar>
+        <div className="flex items-center gap-3">
+          {user && (
+            <span className="text-xs text-muted-foreground hidden md:inline">
+              {user.name} • {user.userType}
+            </span>
+          )}
+          {user ? (
+            <Button size="sm" variant="outline" onClick={logout}>
+              Logout
+            </Button>
+          ) : null}
+          <Avatar className="h-8 w-8">
+            <AvatarImage src="" />
+            <AvatarFallback className="bg-primary text-primary-foreground">
+              {user?.name?.slice(0,2).toUpperCase() || "GU"}
+            </AvatarFallback>
+          </Avatar>
+        </div>
       </div>
     </header>
   );

@@ -206,9 +206,7 @@ export function AddClientDialog({
         created = updateRes.data;
         toast({
           title: "Client Updated",
-          description: `Updated client '${
-            created?.name || form.name
-          }'.`,
+          description: `Updated client '${created?.name || form.name}'.`,
         });
       } else {
         const insertRes: any = await (supabase as any)
@@ -220,9 +218,7 @@ export function AddClientDialog({
         created = insertRes.data;
         toast({
           title: "Client Added",
-          description: `Created client '${
-            created?.name || form.name
-          }'.`,
+          description: `Created client '${created?.name || form.name}'.`,
         });
       }
       reset();
