@@ -74,15 +74,14 @@ export function AppSidebar() {
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {(
-                user && (user.userType || "").toLowerCase() === "admin"
-                  ? [
-                      ...baseNavigationItems.slice(0, 5),
-                      { title: "Admin", url: "/admin", icon: ShieldCheck },
-                      ...baseNavigationItems.slice(5),
-                    ]
-                  : baseNavigationItems
-               ).map((item) => (
+              {(user && (user.userType || "").toLowerCase() === "admin"
+                ? [
+                    ...baseNavigationItems.slice(0, 5),
+                    { title: "Admin", url: "/admin", icon: ShieldCheck },
+                    ...baseNavigationItems.slice(5),
+                  ]
+                : baseNavigationItems
+              ).map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink to={item.url} className={getNavClass(item.url)}>
