@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -538,7 +539,7 @@ export function AddProjectDialog({
         projectType: formData.projectType || null,
         projectSubType: formData.projectSubType || null,
         clientPm:
-          formData.clientPm === undefined || formData.clientPm === null
+          !formData.clientPm || formData.clientPm === 0
             ? null
             : Number(formData.clientPm),
       };
@@ -722,20 +723,22 @@ export function AddProjectDialog({
                       className="h-9"
                     />
                     <CommandEmpty>No client found.</CommandEmpty>
-                    <CommandGroup>
-                      {clients.map((c) => (
-                        <CommandItem
-                          key={String(c.id)}
-                          value={String(c.name)}
-                          onSelect={() => {
-                            handleInputChange("clientId", Number(c.id));
-                            setClientOpen(false);
-                          }}
-                        >
-                          {c.name}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
+                    <ScrollArea className="h-[200px]">
+                      <CommandGroup>
+                        {clients.map((c) => (
+                          <CommandItem
+                            key={String(c.id)}
+                            value={String(c.name)}
+                            onSelect={() => {
+                              handleInputChange("clientId", Number(c.id));
+                              setClientOpen(false);
+                            }}
+                          >
+                            {c.name}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </ScrollArea>
                   </Command>
                 </PopoverContent>
               </Popover>
@@ -759,7 +762,7 @@ export function AddProjectDialog({
                   <SelectItem value="Noida">Noida</SelectItem>
                   <SelectItem value="Mysore">Mysore</SelectItem>
                   <SelectItem value="Kannur">Kannur</SelectItem>
-                  <SelectItem value="Dheradun">Dheradun</SelectItem>
+                  <SelectItem value="Dehradun">Dehradun</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -795,30 +798,32 @@ export function AddProjectDialog({
                       className="h-9"
                     />
                     <CommandEmpty>No user found.</CommandEmpty>
-                    <CommandGroup>
-                      <CommandItem
-                        key="__tbd"
-                        value="To be Decided"
-                        onSelect={() => {
-                          handleInputChange("solTLId", undefined as any);
-                          setTlOpen(false);
-                        }}
-                      >
-                        To be Decided
-                      </CommandItem>
-                      {employees.map((e) => (
+                    <ScrollArea className="h-[200px]">
+                      <CommandGroup>
                         <CommandItem
-                          key={String(e.id)}
-                          value={String(e.name)}
+                          key="__tbd"
+                          value="To be Decided"
                           onSelect={() => {
-                            handleInputChange("solTLId", Number(e.id));
+                            handleInputChange("solTLId", undefined as any);
                             setTlOpen(false);
                           }}
                         >
-                          {e.name}
+                          To be Decided
                         </CommandItem>
-                      ))}
-                    </CommandGroup>
+                        {employees.map((e) => (
+                          <CommandItem
+                            key={String(e.id)}
+                            value={String(e.name)}
+                            onSelect={() => {
+                              handleInputChange("solTLId", Number(e.id));
+                              setTlOpen(false);
+                            }}
+                          >
+                            {e.name}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </ScrollArea>
                   </Command>
                 </PopoverContent>
               </Popover>
@@ -835,10 +840,10 @@ export function AddProjectDialog({
                     aria-expanded={clientPmOpen}
                     className="w-full justify-between"
                   >
-                    {formData.clientPm != null
+                    {formData.clientPm && formData.clientPm !== 0
                       ? clientPMs.find(
                           (c) => String(c.id) === String(formData.clientPm)
-                        )?.name || `Client PM ${formData.clientPm}`
+                        )?.name || "Select client PM"
                       : "Select client PM"}
                     <span className="ml-2 text-muted-foreground">⌕</span>
                   </Button>
@@ -853,30 +858,32 @@ export function AddProjectDialog({
                       className="h-9"
                     />
                     <CommandEmpty>No client PM found.</CommandEmpty>
-                    <CommandGroup>
-                      <CommandItem
-                        key="__none"
-                        value="None"
-                        onSelect={() => {
-                          handleInputChange("clientPm", undefined as any);
-                          setClientPmOpen(false);
-                        }}
-                      >
-                        None
-                      </CommandItem>
-                      {clientPMs.map((c) => (
+                    <ScrollArea className="h-[200px]">
+                      <CommandGroup>
                         <CommandItem
-                          key={String(c.id)}
-                          value={String(c.name)}
+                          key="__none"
+                          value="None"
                           onSelect={() => {
-                            handleInputChange("clientPm", Number(c.id));
+                            handleInputChange("clientPm", null);
                             setClientPmOpen(false);
                           }}
                         >
-                          {c.name}
+                          None
                         </CommandItem>
-                      ))}
-                    </CommandGroup>
+                        {clientPMs.map((c) => (
+                          <CommandItem
+                            key={String(c.id)}
+                            value={String(c.name)}
+                            onSelect={() => {
+                              handleInputChange("clientPm", Number(c.id));
+                              setClientPmOpen(false);
+                            }}
+                          >
+                            {c.name}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </ScrollArea>
                   </Command>
                 </PopoverContent>
               </Popover>

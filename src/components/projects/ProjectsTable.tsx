@@ -132,11 +132,11 @@ const getProgressColor = (percent: number) => {
   return "bg-destructive";
 };
 
-const LOCATION_OPTIONS = ["Noida", "Mysore", "Kannur", "Dheradun"]; // canonical UI list
+const LOCATION_OPTIONS = ["Noida", "Mysore", "Kannur", "Dehradun"]; // canonical UI list
 function normalizeLocation(raw?: string | null): string | undefined {
   if (!raw) return undefined;
   const val = raw.trim();
-  if (/^dehra?dun$/i.test(val)) return "Dheradun"; // map both Dehradun & Dheradun to one spelling
+  if (/^dehra?dun$/i.test(val)) return "Dehradun"; // map both Dehradun & Dheradun to one spelling
   // match ignoring case
   const found = LOCATION_OPTIONS.find(
     (l) => l.toLowerCase() === val.toLowerCase()
@@ -623,30 +623,49 @@ export function ProjectsTable({
 
     const name = (project.name ?? "").toString();
     const clientName = (project.client ?? "").toString();
+    // clientPM may be stored as a string name (clientPM) or a numeric id (clientPm)
+    const clientPmName = (
+      project.clientPM ??
+      project.clientPm ??
+      ""
+    ).toString();
     const lead = (project.teamLead ?? "").toString();
     const sol = (project.solProjectNo ?? "").toString();
+    // Prefer explicit branch field (set by AddProjectDialog) then portalName/location
     const locationRaw = (
+      project.branch ??
       project.portalName ??
       project.location ??
       ""
     ).toString();
     const location = normalizeLocation(locationRaw) || "";
+    // Normalized compare helper for location matching: remove non-alphanumeric
+    // characters and compare lowercase. This lets "Mysore, India" match
+    // "Mysore" or small spelling variants.
+    const normalizeForCompare = (s: string) =>
+      String(s || "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "");
 
     const activeQuery = (globalSearch || searchTerm).toLowerCase();
     const matchesSearch =
       !activeQuery ||
       name.toLowerCase().includes(activeQuery) ||
       clientName.toLowerCase().includes(activeQuery) ||
+      clientPmName.toLowerCase().includes(activeQuery) ||
       lead.toLowerCase().includes(activeQuery) ||
       sol.toLowerCase().includes(activeQuery);
 
+    // Status filter (external overrides internal)
     const activeStatusFilter = statusFilterExternal ?? statusFilter;
     const matchesStatus = restrictToLive
       ? project.statusLabel === "Live"
       : activeStatusFilter === "all" ||
         project.statusLabel === activeStatusFilter;
+    // Location filter
     const matchesLocation =
-      locationFilter === "all" || location === locationFilter;
+      locationFilter === "all" ||
+      normalizeForCompare(location) === normalizeForCompare(locationFilter);
 
     const matchesClient =
       clientFilterId == null ||
@@ -957,11 +976,8 @@ export function ProjectsTable({
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge
-                          className={getStatusColor(
-                            project.statusLabel || project.status || ""
-                          )}
-                        >
+                        {/* Always render the status badge using the same style as 'Live' */}
+                        <Badge className={getStatusColor("Live")}>
                           {project.statusLabel || project.status || "-"}
                         </Badge>
                       </TableCell>
