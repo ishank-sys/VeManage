@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="refresh" content="0; url=/" />
+    <title>Redirecting…</title>
+    <script>
+      (function () {
+        try {
+          var l = window.location;
+          var path = l.pathname + l.search + l.hash;
+          var redirect = '/?p=' + encodeURIComponent(path);
+          l.replace(redirect);
+        } catch (e) {
+          // no-op
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    Redirecting…
+  </body>
+</html>

@@ -654,6 +654,27 @@ export function ProjectsTable({
     return matchesSearch && matchesStatus && matchesLocation && matchesClient;
   });
 
+  // and falls back to string comparison if parsing fails.
+  const sortedProjects = (() => {
+    const extractNumber = (s?: string) => {
+      if (!s) return NaN;
+      const m = String(s).match(/(\d+)(?!.*\d)/); // last group of digits
+      return m ? Number(m[1]) : NaN;
+    };
+
+    return [...filteredProjects].sort((a, b) => {
+      const aKey = (a.solProjectNo || a.projectNo || "").toString();
+      const bKey = (b.solProjectNo || b.projectNo || "").toString();
+      const aNum = extractNumber(aKey);
+      const bNum = extractNumber(bKey);
+      if (!Number.isNaN(aNum) && !Number.isNaN(bNum)) {
+        return bNum - aNum; // descending numeric
+      }
+      // fallback to string-descending
+      return bKey.localeCompare(aKey);
+    });
+  })();
+
   return (
     <Card>
       <CardHeader>
@@ -799,7 +820,7 @@ export function ProjectsTable({
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredProjects.map((project) => (
+                  sortedProjects.map((project) => (
                     <TableRow
                       key={project.id}
                       className="hover:bg-muted/50 cursor-pointer"

@@ -15,6 +15,20 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@lovable_dev" />
     <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+  
+    <script>
+      // Restore client-side route when redirected via 404 fallback (e.g., GitHub Pages)
+      (function () {
+        try {
+          var l = window.location;
+          var params = new URLSearchParams(l.search);
+          var p = params.get('p');
+          if (p) {
+            window.history.replaceState(null, '', p);
+          }
+        } catch (e) { /* no-op */ }
+      })();
+    </script>
   </head>
 
   <body>

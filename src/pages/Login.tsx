@@ -35,7 +35,18 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 pt-20">
+    <div className="relative min-h-screen flex items-center justify-center p-4 pt-20 overflow-hidden">
+      {/* Background image with subtle blur */}
+      <div className="absolute inset-0 -z-10">
+        <img
+          src="/bg1.jpg"
+          alt="Construction site background"
+          className="w-full h-full object-cover blur-[2px] scale-105"
+          loading="eager"
+          decoding="async"
+        />
+        <div className="absolute inset-0 bg-background/40" />
+      </div>
       {/* Top welcome bar */}
       <div className="fixed top-0 left-0 right-0 h-16 bg-primary text-primary-foreground flex items-center justify-between shadow-sm z-10 px-4">
         <div className="flex items-center gap-2">
@@ -45,7 +56,7 @@ export default function Login() {
           Welcome to VeManage
         </span>
       </div>
-      <Card className="w-full max-w-sm">
+      <Card className="w-full max-w-sm backdrop-blur-[1px] bg-background/80">
         <CardHeader>
           <CardTitle>Sign in</CardTitle>
         </CardHeader>

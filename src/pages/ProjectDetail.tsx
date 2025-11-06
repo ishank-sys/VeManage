@@ -143,6 +143,7 @@ const ProjectDetailPage = () => {
   const [openRfiDialog, setOpenRfiDialog] = useState(false);
   const [openPkgDialog, setOpenPkgDialog] = useState(false);
   const [pkgToEdit, setPkgToEdit] = useState<PackageRecord | null>(null);
+  const [savingPackage, setSavingPackage] = useState(false);
 
   const [newRfi, setNewRfi] = useState({
     rfiNumber: "",
@@ -223,10 +224,25 @@ const ProjectDetailPage = () => {
       const { data, error } = await supabase
         .from("ProjectPackage")
         .select("*")
-        .eq("projectid", projectId)
-        .order("tentativedate", { ascending: true });
+        .eq("projectid", projectId);
       if (error) throw error;
-      setPkgList((data || []) as any);
+      // Sort by numeric value of packagenumber (serial) ascending
+      const toNum = (val: any) => {
+        if (val === null || val === undefined) return Number.POSITIVE_INFINITY;
+        const onlyDigits = String(val).replace(/[^0-9]/g, "");
+        const n = parseInt(onlyDigits, 10);
+        return Number.isFinite(n) ? n : Number.POSITIVE_INFINITY;
+      };
+      const sorted = (data || []).sort((a: any, b: any) => {
+        const na = toNum(a.packagenumber);
+        const nb = toNum(b.packagenumber);
+        if (na !== nb) return na - nb;
+        // Fallback to natural string compare when numbers equal/missing
+        const sa = String(a.packagenumber ?? "");
+        const sb = String(b.packagenumber ?? "");
+        return sa.localeCompare(sb, undefined, { numeric: true, sensitivity: "base" });
+      });
+      setPkgList(sorted as any);
     } catch (e) {
       console.error("Package load error", e);
     } finally {
@@ -278,10 +294,10 @@ const ProjectDetailPage = () => {
   };
 
   const handleAddPackage = async () => {
-    if (!projectId) return;
+    if (!projectId || savingPackage) return;
     try {
       if (!newPkg.name) return;
-      // Auto-assign serial/packagenumber for new packages; keep existing on edit
+      setSavingPackage(true);
       const autoSerial = !pkgToEdit
         ? await computeNextSerial()
         : pkgToEdit.packagenumber || null;
@@ -388,6 +404,8 @@ const ProjectDetailPage = () => {
         description: String(e),
         variant: "destructive" as any,
       });
+    } finally {
+      setSavingPackage(false);
     }
   };
 
@@ -790,9 +808,9 @@ const ProjectDetailPage = () => {
                             <Button
                               size="sm"
                               onClick={handleAddPackage}
-                              disabled={!newPkg.name}
+                              disabled={!newPkg.name || savingPackage}
                             >
-                              Save
+                              {savingPackage ? "Saving..." : "Save"}
                             </Button>
                           </div>
                         </div>
