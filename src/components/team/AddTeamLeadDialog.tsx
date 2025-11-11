@@ -52,6 +52,7 @@ export function AddTeamLeadDialog({
   const [email, setEmail] = useState("");
   const [extension, setExtension] = useState("");
   const [password, setPassword] = useState(() => randomPassword());
+  const [showingCopied, setShowingCopied] = useState(false);
   const [teamMembers, setTeamMembers] = useState<TeamMemberRow[]>([]);
   const [notes, setNotes] = useState("");
   const [employees, setEmployees] = useState<
@@ -96,12 +97,29 @@ export function AddTeamLeadDialog({
     setNotes("");
   };
 
+  const copyPassword = async () => {
+    try {
+      await navigator.clipboard.writeText(password);
+      setShowingCopied(true);
+      setTimeout(() => setShowingCopied(false), 1500);
+      toast({ title: "Copied", description: "Password copied to clipboard." });
+    } catch (e) {
+      toast({
+        title: "Copy failed",
+        description: String(e),
+        variant: "destructive",
+      });
+    }
+  };
+
   useEffect(() => {
     if (!open) return;
     if (isEdit && initialData) {
       setName(initialData.name || "");
       setEmail(initialData.email || "");
       setExtension(initialData.contactNo || "");
+      // Ensure the password field shows exactly what's stored in DB when editing
+      setPassword(initialData.password || "");
       if (initialData.teaminfo?.team_members) {
         setTeamMembers(
           initialData.teaminfo.team_members.map((m: any) => ({
@@ -176,6 +194,7 @@ export function AddTeamLeadDialog({
           }
         : null;
       const now = new Date().toISOString();
+      // Store plaintext temp password directly in the 'password' column as requested
       const payload: any = {
         name: name.trim(),
         email: email.trim(),
@@ -191,6 +210,7 @@ export function AddTeamLeadDialog({
         (k) => payload[k] === undefined && delete payload[k]
       );
 
+      let saved: any;
       if (isEdit && (initialData?.id || userId != null)) {
         const id = initialData?.id ?? userId;
         const res: any = await (supabase as any)
@@ -200,9 +220,10 @@ export function AddTeamLeadDialog({
           .select()
           .single();
         if (res.error) throw res.error;
+        saved = res.data;
         toast({
           title: "Team Lead Updated",
-          description: `Updated employee '${res.data?.name}'.`,
+          description: `Updated employee '${saved?.name}'.`,
         });
       } else {
         const res: any = await (supabase as any)
@@ -211,11 +232,15 @@ export function AddTeamLeadDialog({
           .select()
           .single();
         if (res.error) throw res.error;
+        saved = res.data;
         toast({
           title: "Team Lead Added",
-          description: `Created employee '${res.data?.name}'.`,
+          description: `Created employee '${saved?.name}'.`,
         });
       }
+
+      // Copy plain password after save so admin can share
+      await copyPassword();
       reset();
       setOpen(false);
       queryClient.invalidateQueries();
@@ -371,10 +396,11 @@ export function AddTeamLeadDialog({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="tl-pass">Temp Password</Label>
+              <Label htmlFor="tl-pass">Temp Password (visible)</Label>
               <div className="flex gap-2">
                 <Input
                   id="tl-pass"
+                  type="text"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Auto-generated"
@@ -386,7 +412,15 @@ export function AddTeamLeadDialog({
                 >
                   Reset
                 </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={copyPassword}
+                >
+                  {showingCopied ? "Copied" : "Copy"}
+                </Button>
               </div>
+              <p className="text-[11px] text-muted-foreground"></p>
             </div>
           </div>
 

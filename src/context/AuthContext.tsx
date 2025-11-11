@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { compareSync } from "bcryptjs";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 
 export type AppUser = {
@@ -43,9 +42,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (error || !data) throw new Error("Invalid email or password.");
 
-    const hash: string = (data as any).password || "";
-    const ok = hash && compareSync(password, hash);
-    if (!ok) throw new Error("Invalid email or password.");
+    // Plaintext password check against the 'password' column
+    const stored: string = (data as any).password ?? "";
+    if (stored !== password) throw new Error("Invalid email or password.");
 
     const signed: AppUser = {
       id: Number((data as any).id),

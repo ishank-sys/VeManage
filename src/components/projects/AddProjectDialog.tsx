@@ -30,13 +30,6 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from "@/components/ui/command";
 
 export interface ProjectForm {
   id?: number;
@@ -109,9 +102,6 @@ export function AddProjectDialog({
   const [clientPMs, setClientPMs] = useState<
     Array<{ id: string | number | null; name: string }>
   >([]);
-  const [clientOpen, setClientOpen] = useState(false);
-  const [tlOpen, setTlOpen] = useState(false);
-  const [clientPmOpen, setClientPmOpen] = useState(false);
 
   const [formData, setFormData] = useState<ProjectForm>({
     projectNo: "",
@@ -696,52 +686,30 @@ export function AddProjectDialog({
               <Label>
                 Client <span className="text-destructive">*</span>
               </Label>
-              <Popover open={clientOpen} onOpenChange={setClientOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={clientOpen}
-                    className="w-full justify-between"
-                  >
-                    {formData.clientId != null
-                      ? clients.find(
-                          (c) => String(c.id) === String(formData.clientId)
-                        )?.name || `Client ${formData.clientId}`
-                      : "Select client"}
-                    <span className="ml-2 text-muted-foreground">⌕</span>
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent
-                  className="p-0 w-[--radix-popover-trigger-width]"
-                  align="start"
-                >
-                  <Command>
-                    <CommandInput
-                      placeholder="Search client..."
-                      className="h-9"
-                    />
-                    <CommandEmpty>No client found.</CommandEmpty>
-                    <ScrollArea className="h-[200px]">
-                      <CommandGroup>
-                        {clients.map((c) => (
-                          <CommandItem
-                            key={String(c.id)}
-                            value={String(c.name)}
-                            onSelect={() => {
-                              handleInputChange("clientId", Number(c.id));
-                              setClientOpen(false);
-                            }}
-                          >
-                            {c.name}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </ScrollArea>
-                  </Command>
-                </PopoverContent>
-              </Popover>
+              <Select
+                value={
+                  formData.clientId ? String(formData.clientId) : undefined
+                }
+                onValueChange={(value) =>
+                  handleInputChange("clientId", Number(value))
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select client" />
+                </SelectTrigger>
+                <SelectContent>
+                  <ScrollArea className="h-[200px]">
+                    {clients.map((client) => (
+                      <SelectItem
+                        key={String(client.id)}
+                        value={String(client.id)}
+                      >
+                        {client.name}
+                      </SelectItem>
+                    ))}
+                  </ScrollArea>
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="branch">Location</Label>
@@ -771,122 +739,62 @@ export function AddProjectDialog({
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Team Lead (User)</Label>
-              <Popover open={tlOpen} onOpenChange={setTlOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={tlOpen}
-                    className="w-full justify-between"
-                  >
-                    {formData.solTLId != null
-                      ? employees.find(
-                          (e) => String(e.id) === String(formData.solTLId)
-                        )?.name || `User ${formData.solTLId}`
-                      : "To be Decided"}
-                    <span className="ml-2 text-muted-foreground">⌕</span>
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent
-                  className="p-0 w-[--radix-popover-trigger-width]"
-                  align="start"
-                >
-                  <Command>
-                    <CommandInput
-                      placeholder="Search team lead..."
-                      className="h-9"
-                    />
-                    <CommandEmpty>No user found.</CommandEmpty>
-                    <ScrollArea className="h-[200px]">
-                      <CommandGroup>
-                        <CommandItem
-                          key="__tbd"
-                          value="To be Decided"
-                          onSelect={() => {
-                            handleInputChange("solTLId", undefined as any);
-                            setTlOpen(false);
-                          }}
-                        >
-                          To be Decided
-                        </CommandItem>
-                        {employees.map((e) => (
-                          <CommandItem
-                            key={String(e.id)}
-                            value={String(e.name)}
-                            onSelect={() => {
-                              handleInputChange("solTLId", Number(e.id));
-                              setTlOpen(false);
-                            }}
-                          >
-                            {e.name}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </ScrollArea>
-                  </Command>
-                </PopoverContent>
-              </Popover>
+              <Select
+                value={formData.solTLId ? String(formData.solTLId) : "__tbd"}
+                onValueChange={(value) =>
+                  handleInputChange(
+                    "solTLId",
+                    value === "__tbd" ? undefined : Number(value)
+                  )
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="To be Decided" />
+                </SelectTrigger>
+                <SelectContent>
+                  <ScrollArea className="h-[200px]">
+                    <SelectItem value="__tbd">To be Decided</SelectItem>
+                    {employees.map((employee) => (
+                      <SelectItem
+                        key={String(employee.id)}
+                        value={String(employee.id)}
+                      >
+                        {employee.name}
+                      </SelectItem>
+                    ))}
+                  </ScrollArea>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
               <Label>Client PM (Client User)</Label>
-              <Popover open={clientPmOpen} onOpenChange={setClientPmOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={clientPmOpen}
-                    className="w-full justify-between"
-                  >
-                    {formData.clientPm && formData.clientPm !== 0
-                      ? clientPMs.find(
-                          (c) => String(c.id) === String(formData.clientPm)
-                        )?.name || "Select client PM"
-                      : "Select client PM"}
-                    <span className="ml-2 text-muted-foreground">⌕</span>
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent
-                  className="p-0 w-[--radix-popover-trigger-width]"
-                  align="start"
-                >
-                  <Command>
-                    <CommandInput
-                      placeholder="Search client PM..."
-                      className="h-9"
-                    />
-                    <CommandEmpty>No client PM found.</CommandEmpty>
-                    <ScrollArea className="h-[200px]">
-                      <CommandGroup>
-                        <CommandItem
-                          key="__none"
-                          value="None"
-                          onSelect={() => {
-                            handleInputChange("clientPm", null);
-                            setClientPmOpen(false);
-                          }}
-                        >
-                          None
-                        </CommandItem>
-                        {clientPMs.map((c) => (
-                          <CommandItem
-                            key={String(c.id)}
-                            value={String(c.name)}
-                            onSelect={() => {
-                              handleInputChange("clientPm", Number(c.id));
-                              setClientPmOpen(false);
-                            }}
-                          >
-                            {c.name}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </ScrollArea>
-                  </Command>
-                </PopoverContent>
-              </Popover>
+              <Select
+                value={formData.clientPm ? String(formData.clientPm) : "__none"}
+                onValueChange={(value) =>
+                  handleInputChange(
+                    "clientPm",
+                    value === "__none" ? null : Number(value)
+                  )
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select client PM" />
+                </SelectTrigger>
+                <SelectContent>
+                  <ScrollArea className="h-[200px]">
+                    <SelectItem value="__none">None</SelectItem>
+                    {clientPMs.map((clientPM) => (
+                      <SelectItem
+                        key={String(clientPM.id)}
+                        value={String(clientPM.id)}
+                      >
+                        {clientPM.name}
+                      </SelectItem>
+                    ))}
+                  </ScrollArea>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
@@ -924,9 +832,6 @@ export function AddProjectDialog({
                 </PopoverContent>
               </Popover>
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>End Date</Label>
               <Popover>
@@ -962,7 +867,9 @@ export function AddProjectDialog({
                 </PopoverContent>
               </Popover>
             </div>
+          </div>
 
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="progress">Progress (%)</Label>
               <Input
@@ -976,55 +883,56 @@ export function AddProjectDialog({
                 }
               />
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="status">Status</Label>
-            <Select
-              value={formData.status || "Live"}
-              onValueChange={(value) => handleInputChange("status", value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Live">Live</SelectItem>
-                <SelectItem value="Sent For Approval">
-                  Sent For Approval
-                </SelectItem>
-                <SelectItem value="Sent for Fabrication">
-                  Sent for Fabrication
-                </SelectItem>
-                <SelectItem value="Closed">Closed</SelectItem>
-                <SelectItem value="On-Hold">On-Hold</SelectItem>
-                <SelectItem value="Cancelled">Cancelled</SelectItem>
-                <SelectItem value="See Remarks">See Remarks</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="space-y-2">
+              <Label htmlFor="status">Status</Label>
+              <Select
+                value={formData.status || "Live"}
+                onValueChange={(value) => handleInputChange("status", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Live">Live</SelectItem>
+                  <SelectItem value="Sent For Approval">
+                    Sent For Approval
+                  </SelectItem>
+                  <SelectItem value="Sent for Fabrication">
+                    Sent for Fabrication
+                  </SelectItem>
+                  <SelectItem value="Closed">Closed</SelectItem>
+                  <SelectItem value="On-Hold">On-Hold</SelectItem>
+                  <SelectItem value="Cancelled">Cancelled</SelectItem>
+                  <SelectItem value="See Remarks">See Remarks</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* Complexity field removed as requested */}
-
-          <div className="space-y-2">
-            <Label htmlFor="projectType">Project Type</Label>
-            <Input
-              id="projectType"
-              value={formData.projectType || ""}
-              onChange={(e) => handleInputChange("projectType", e.target.value)}
-              placeholder="e.g., Structural"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="projectSubType">Project Sub-Type</Label>
-            <Input
-              id="projectSubType"
-              value={formData.projectSubType || ""}
-              onChange={(e) =>
-                handleInputChange("projectSubType", e.target.value)
-              }
-              placeholder="e.g., Architectural"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="projectType">Project Type</Label>
+              <Input
+                id="projectType"
+                value={formData.projectType || ""}
+                onChange={(e) =>
+                  handleInputChange("projectType", e.target.value)
+                }
+                placeholder="e.g., Structural"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="projectSubType">Project Sub-Type</Label>
+              <Input
+                id="projectSubType"
+                value={formData.projectSubType || ""}
+                onChange={(e) =>
+                  handleInputChange("projectSubType", e.target.value)
+                }
+                placeholder="e.g., Architectural"
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -1052,19 +960,18 @@ export function AddProjectDialog({
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="totalProjectHours">Total Project Hours</Label>
-            <Input
-              id="totalProjectHours"
-              value={formData.totalProjectHours || ""}
-              onChange={(e) =>
-                handleInputChange("totalProjectHours", e.target.value)
-              }
-              placeholder="e.g., 1200h"
-            />
-          </div>
-
           <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="totalProjectHours">Total Project Hours</Label>
+              <Input
+                id="totalProjectHours"
+                value={formData.totalProjectHours || ""}
+                onChange={(e) =>
+                  handleInputChange("totalProjectHours", e.target.value)
+                }
+                placeholder="e.g., 1200h"
+              />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="totalDays">Total Days</Label>
               <Input

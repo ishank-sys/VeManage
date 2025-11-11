@@ -28,6 +28,14 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Plus, Trash } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -88,6 +96,7 @@ interface PackageRecord {
   createdat?: string | null;
   updatedat?: string | null;
   ifaversion?: string | null;
+  bfaversion?: string | null;
   ifcversion?: string | null;
   ifadate?: string | null;
   bfadate?: string | null;
@@ -160,6 +169,7 @@ const ProjectDetailPage = () => {
     submitalStatus: "IN_PROGRESS",
     remarks: "",
     ifaVersion: "",
+    bfaVersion: "",
     ifcVersion: "",
   });
   // When non-null, `pkgToEdit` indicates we're editing an existing package.
@@ -240,7 +250,10 @@ const ProjectDetailPage = () => {
         // Fallback to natural string compare when numbers equal/missing
         const sa = String(a.packagenumber ?? "");
         const sb = String(b.packagenumber ?? "");
-        return sa.localeCompare(sb, undefined, { numeric: true, sensitivity: "base" });
+        return sa.localeCompare(sb, undefined, {
+          numeric: true,
+          sensitivity: "base",
+        });
       });
       setPkgList(sorted as any);
     } catch (e) {
@@ -392,6 +405,7 @@ const ProjectDetailPage = () => {
         submitalStatus: "IN_PROGRESS",
         remarks: "",
         ifaVersion: "",
+        bfaVersion: "",
         ifcVersion: "",
       });
       setPkgToEdit(null);
@@ -725,7 +739,7 @@ const ProjectDetailPage = () => {
                               />
                             </div>
                           </div>
-                          <div className="grid grid-cols-2 gap-3">
+                          <div className="grid grid-cols-3 gap-3">
                             <div>
                               <label className="text-sm font-medium">
                                 IFA Version
@@ -737,6 +751,21 @@ const ProjectDetailPage = () => {
                                   setNewPkg((p) => ({
                                     ...p,
                                     ifaVersion: e.target.value,
+                                  }))
+                                }
+                              />
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium">
+                                BFA Version
+                              </label>
+                              <Input
+                                placeholder="e.g., BFA-01"
+                                value={newPkg.bfaVersion}
+                                onChange={(e) =>
+                                  setNewPkg((p) => ({
+                                    ...p,
+                                    bfaVersion: e.target.value,
                                   }))
                                 }
                               />
@@ -763,21 +792,59 @@ const ProjectDetailPage = () => {
                             <label className="text-sm font-medium">
                               Submital Status
                             </label>
-                            <select
-                              className="w-full rounded border px-3 py-2 text-sm"
+                            <Select
                               value={newPkg.submitalStatus}
-                              onChange={(e) =>
-                                setNewPkg((p) => ({
-                                  ...p,
-                                  submitalStatus: e.target.value,
-                                }))
+                              onValueChange={(v) =>
+                                setNewPkg((p) => ({ ...p, submitalStatus: v }))
                               }
                             >
-                              <option value="IN_PROGRESS">IN_PROGRESS</option>
-                              <option value="COMPLETED">COMPLETED</option>
-                              <option value="PENDING">PENDING</option>
-                              <option value="APPROVED">APPROVED</option>
-                            </select>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent className="p-0">
+                                <ScrollArea className="h-[220px]">
+                                  <div className="flex flex-col">
+                                    <SelectItem value="IN_PROGRESS">
+                                      IN_PROGRESS
+                                    </SelectItem>
+                                    <SelectItem value="COMPLETED">
+                                      COMPLETED
+                                    </SelectItem>
+                                    <SelectItem value="PENDING">
+                                      PENDING
+                                    </SelectItem>
+                                    <SelectItem value="APPROVED">
+                                      APPROVED
+                                    </SelectItem>
+                                    <SelectItem value="LIVE">LIVE</SelectItem>
+                                    <SelectItem value="BFA AWAITED">
+                                      BFA AWAITED
+                                    </SelectItem>
+                                    <SelectItem value="BFA RECEIVED">
+                                      BFA RECEIVED
+                                    </SelectItem>
+                                    <SelectItem value="ON-HOLD">
+                                      ON-HOLD
+                                    </SelectItem>
+                                    <SelectItem value="SENT FOR IFC">
+                                      SENT FOR IFC
+                                    </SelectItem>
+                                    <SelectItem value="R&R">R&R</SelectItem>
+                                    <SelectItem value="SEE REMARKS">
+                                      SEE REMARKS
+                                    </SelectItem>
+                                    <SelectItem value="CANCELLED">
+                                      CANCELLED
+                                    </SelectItem>
+                                    <SelectItem value="VOID">VOID</SelectItem>
+                                    <SelectItem value="N/A">N/A</SelectItem>
+                                    <SelectItem value="NOT IN SCOPE">
+                                      NOT IN SCOPE
+                                    </SelectItem>
+                                  </div>
+                                </ScrollArea>
+                              </SelectContent>
+                            </Select>
                           </div>
                           <div>
                             <label className="text-sm font-medium">
@@ -863,6 +930,7 @@ const ProjectDetailPage = () => {
                                           pkg.status || "IN_PROGRESS",
                                         remarks: pkg.notes || "",
                                         ifaVersion: pkg.ifaversion || "",
+                                        bfaVersion: pkg.bfaversion || "",
                                         ifcVersion: pkg.ifcversion || "",
                                       });
                                       setOpenPkgDialog(true);
